@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'dart:io' show File, Directory, Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../controllers/image_processing_controller.dart';
 import '../widgets/api_key_input.dart';
 import '../widgets/provider_selector.dart';
@@ -60,14 +61,89 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
         }
       } else {
         // Для мобильных платформ
-        final directory = await getApplicationDocumentsDirectory();
+        Directory? directory;
+        String saveMessage = '';
+
+        if (Platform.isAndroid) {
+          // Для Android сохраняем в папку Downloads
+          try {
+            // Получаем внешнее хранилище
+            final externalDir = await getExternalStorageDirectory();
+            if (externalDir != null) {
+              // Строим путь к папке Downloads
+              // externalDir обычно: /storage/emulated/0/Android/data/.../files
+              // Нужно получить: /storage/emulated/0/Download
+              final storagePath = externalDir.path;
+
+              // Извлекаем корневой путь хранилища
+              String downloadsPath;
+              if (storagePath.contains('/Android/')) {
+                // Путь до /Android, затем добавляем /Download
+                downloadsPath = path.join(
+                  storagePath.split('/Android/')[0],
+                  'Download',
+                );
+              } else {
+                // Альтернативный путь
+                downloadsPath = '/storage/emulated/0/Download';
+              }
+
+              directory = Directory(downloadsPath);
+
+              // Создаем папку, если её нет
+              if (!await directory.exists()) {
+                await directory.create(recursive: true);
+              }
+
+              saveMessage = 'Изображение сохранено в папку "Загрузки"';
+            } else {
+              throw Exception('Не удалось получить доступ к хранилищу');
+            }
+          } catch (e) {
+            // Fallback: используем папку Pictures
+            try {
+              final externalDir = await getExternalStorageDirectory();
+              if (externalDir != null) {
+                final picturesPath = path.join(
+                  externalDir.path.split('/Android/')[0],
+                  'Pictures',
+                  'BackgroundEraser',
+                );
+                directory = Directory(picturesPath);
+                if (!await directory.exists()) {
+                  await directory.create(recursive: true);
+                }
+                saveMessage = 'Изображение сохранено в папку "Изображения/BackgroundEraser"';
+              } else {
+                throw Exception('Не удалось получить доступ');
+              }
+            } catch (_) {
+              // Последний fallback: внутреннее хранилище
+              directory = await getApplicationDocumentsDirectory();
+              saveMessage = 'Изображение сохранено во внутреннее хранилище приложения';
+            }
+          }
+        } else if (Platform.isIOS) {
+          // Для iOS используем папку документов
+          directory = await getApplicationDocumentsDirectory();
+          saveMessage = 'Изображение сохранено в галерею';
+        } else {
+          // Для других платформ
+          directory = await getApplicationDocumentsDirectory();
+          saveMessage = 'Изображение сохранено';
+        }
+
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final file = File('${directory.path}/processed_image_$timestamp.png');
+        final filename = 'processed_image_$timestamp.png';
+        final file = File(path.join(directory.path, filename));
         await file.writeAsBytes(_controller.state.processedImage!);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Изображение сохранено: ${file.path}')),
+            SnackBar(
+              content: Text(saveMessage),
+              duration: const Duration(seconds: 3),
+            ),
           );
         }
       }
