@@ -33,7 +33,14 @@ class AppState {
       selectedImageBytes: selectedImageBytes ?? this.selectedImageBytes,
       processedImage: processedImage ?? this.processedImage,
       isProcessing: isProcessing ?? this.isProcessing,
-      errorMessage: errorMessage ?? this.errorMessage,
+      // Если errorMessage явно передан (включая null), используем его
+      // Иначе сохраняем старое значение
+      errorMessage: errorMessage != null ||
+                   selectedImageBytes != null ||
+                   processedImage != null ||
+                   isProcessing != null
+          ? errorMessage
+          : this.errorMessage,
       apiKey: apiKey ?? this.apiKey,
       selectedProvider: selectedProvider ?? this.selectedProvider,
       blurRadius: blurRadius ?? this.blurRadius,

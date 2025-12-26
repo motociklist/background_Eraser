@@ -114,7 +114,11 @@ class ImageProcessingController extends ChangeNotifier {
           action: 'Background removal completed',
           state: {'result_size': result.length},
         );
-        _state = _state.copyWith(processedImage: result, isProcessing: false);
+        _state = _state.copyWith(
+          processedImage: result,
+          isProcessing: false,
+          errorMessage: null, // Явно очищаем ошибку при успехе
+        );
       } else {
         _logger.logWarning(
           message: 'Background removal returned null',
@@ -180,7 +184,11 @@ class ImageProcessingController extends ChangeNotifier {
           action: 'Background blur completed',
           state: {'result_size': result.length},
         );
-        _state = _state.copyWith(processedImage: result, isProcessing: false);
+        _state = _state.copyWith(
+          processedImage: result,
+          isProcessing: false,
+          errorMessage: null, // Явно очищаем ошибку при успехе
+        );
       } else {
         _logger.logWarning(
           message: 'Background blur returned null',
