@@ -137,16 +137,32 @@ class BackgroundService {
       final noBgImage = img.decodeImage(imageWithoutBg);
       if (noBgImage == null) return null;
 
+      // Убеждаемся, что размеры совпадают
+      final width = originalImage.width;
+      final height = originalImage.height;
+
+      // Изменяем размер изображения без фона под оригинал, если нужно
+      final resizedNoBg = noBgImage.width != width || noBgImage.height != height
+          ? img.copyResize(noBgImage, width: width, height: height)
+          : noBgImage;
+
       // Размываем оригинальное изображение
-      final blurredImage = img.copyResize(originalImage, width: originalImage.width, height: originalImage.height);
+      final blurredImage = img.copyResize(originalImage, width: width, height: height);
       img.gaussianBlur(blurredImage, radius: blurRadius.toInt());
 
-      // Накладываем объект без фона на размытое изображение
-      // Используем композицию: сначала рисуем размытое изображение, затем объект без фона поверх
-      final result = img.copyResize(blurredImage, width: blurredImage.width, height: blurredImage.height);
+      // Создаем результат на основе размытого изображения
+      final result = img.copyResize(blurredImage, width: width, height: height);
 
-      // Композиция: накладываем изображение без фона поверх размытого
-      img.compositeImage(result, noBgImage, dstX: 0, dstY: 0);
+      // Используем compositeImage БЕЗ blend mode для правильной обработки альфа-канала
+      // По умолчанию compositeImage правильно обрабатывает прозрачность:
+      // - Прозрачные пиксели (фон) остаются из размытого изображения
+      // - Непрозрачные пиксели (объект) заменяются из изображения без фона
+      img.compositeImage(
+        result,
+        resizedNoBg,
+        dstX: 0,
+        dstY: 0,
+      );
 
       return Uint8List.fromList(img.encodePng(result));
     } catch (e) {

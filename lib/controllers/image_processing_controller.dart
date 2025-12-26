@@ -37,9 +37,7 @@ class ImageProcessingController extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _state = _state.copyWith(
-        errorMessage: 'Ошибка выбора изображения: $e',
-      );
+      _state = _state.copyWith(errorMessage: 'Ошибка выбора изображения: $e');
       notifyListeners();
     }
   }
@@ -54,10 +52,10 @@ class ImageProcessingController extends ChangeNotifier {
       return;
     }
 
-    if (_state.apiKey.isEmpty) {
-      _state = _state.copyWith(
-        errorMessage: 'Пожалуйста, введите API ключ',
-      );
+    // Проверяем API ключ напрямую из контроллера
+    final apiKey = apiKeyController.text.trim();
+    if (apiKey.isEmpty) {
+      _state = _state.copyWith(errorMessage: 'Пожалуйста, введите API ключ');
       notifyListeners();
       return;
     }
@@ -70,17 +68,16 @@ class ImageProcessingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _backgroundService.apiKey = _state.apiKey;
+      // Используем API ключ из контроллера
+      _backgroundService.apiKey = apiKey;
       _backgroundService.apiProvider = _state.selectedProvider;
 
-      final result = await _backgroundService
-          .removeBackgroundFromBytes(_state.selectedImageBytes!);
+      final result = await _backgroundService.removeBackgroundFromBytes(
+        _state.selectedImageBytes!,
+      );
 
       if (result != null) {
-        _state = _state.copyWith(
-          processedImage: result,
-          isProcessing: false,
-        );
+        _state = _state.copyWith(processedImage: result, isProcessing: false);
       } else {
         _state = _state.copyWith(
           errorMessage: 'Не удалось обработать изображение',
@@ -106,10 +103,10 @@ class ImageProcessingController extends ChangeNotifier {
       return;
     }
 
-    if (_state.apiKey.isEmpty) {
-      _state = _state.copyWith(
-        errorMessage: 'Пожалуйста, введите API ключ для удаления фона',
-      );
+    // Проверяем API ключ напрямую из контроллера
+    final apiKey = apiKeyController.text.trim();
+    if (apiKey.isEmpty) {
+      _state = _state.copyWith(errorMessage: 'Пожалуйста, введите API ключ');
       notifyListeners();
       return;
     }
@@ -117,24 +114,23 @@ class ImageProcessingController extends ChangeNotifier {
     _state = _state.copyWith(
       isProcessing: true,
       errorMessage: null,
-      processedImage: null,
+      processedImage: null, // Очищаем предыдущий результат
     );
     notifyListeners();
 
     try {
-      _backgroundService.apiKey = _state.apiKey;
+      // Используем API ключ из контроллера
+      _backgroundService.apiKey = apiKey;
       _backgroundService.apiProvider = _state.selectedProvider;
 
+      // Вызываем размытие напрямую, без промежуточного показа изображения без фона
       final result = await _backgroundService.blurBackgroundFromBytes(
         _state.selectedImageBytes!,
         blurRadius: _state.blurRadius,
       );
 
       if (result != null) {
-        _state = _state.copyWith(
-          processedImage: result,
-          isProcessing: false,
-        );
+        _state = _state.copyWith(processedImage: result, isProcessing: false);
       } else {
         _state = _state.copyWith(
           errorMessage: 'Не удалось размыть фон',
@@ -149,7 +145,6 @@ class ImageProcessingController extends ChangeNotifier {
     }
     notifyListeners();
   }
-
 
   /// Обновление провайдера
   void updateProvider(String provider) {
@@ -181,4 +176,3 @@ class ImageProcessingController extends ChangeNotifier {
     super.dispose();
   }
 }
-
