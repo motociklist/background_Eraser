@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/app_state.dart';
 import '../services/background_service.dart';
+import '../services/logger_service.dart';
 
 /// Контроллер для управления обработкой изображений
 class ImageProcessingController extends ChangeNotifier {
   final BackgroundService _backgroundService = BackgroundService();
   final ImagePicker _imagePicker = ImagePicker();
+  final LoggerService _logger = LoggerService();
 
   AppState _state = const AppState();
   AppState get state => _state;
@@ -14,7 +16,9 @@ class ImageProcessingController extends ChangeNotifier {
   final TextEditingController apiKeyController = TextEditingController();
 
   ImageProcessingController() {
+    _logger.init();
     apiKeyController.addListener(_onApiKeyChanged);
+    _logger.logAppState(action: 'Controller initialized');
   }
 
   void _onApiKeyChanged() {
@@ -25,18 +29,39 @@ class ImageProcessingController extends ChangeNotifier {
   /// Выбор изображения
   Future<void> pickImage(ImageSource source) async {
     try {
+      _logger.logInfo(
+        message: 'Picking image',
+        data: {'source': source.toString()},
+      );
+
       final XFile? image = await _imagePicker.pickImage(source: source);
 
       if (image != null) {
         final bytes = await image.readAsBytes();
+        _logger.logImagePick(
+          source: source.toString(),
+          imageSize: bytes.length,
+          path: image.path,
+        );
+
         _state = _state.copyWith(
           selectedImageBytes: bytes,
           processedImage: null,
           errorMessage: null,
         );
         notifyListeners();
+
+        _logger.logAppState(
+          action: 'Image selected',
+          state: {'size': bytes.length},
+        );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Error picking image',
+        error: e,
+        stackTrace: stackTrace,
+      );
       _state = _state.copyWith(errorMessage: 'Ошибка выбора изображения: $e');
       notifyListeners();
     }
@@ -67,6 +92,14 @@ class ImageProcessingController extends ChangeNotifier {
     );
     notifyListeners();
 
+    _logger.logAppState(
+      action: 'Starting background removal',
+      state: {
+        'provider': _state.selectedProvider,
+        'image_size': _state.selectedImageBytes!.length,
+      },
+    );
+
     try {
       // Используем API ключ из контроллера
       _backgroundService.apiKey = apiKey;
@@ -77,14 +110,27 @@ class ImageProcessingController extends ChangeNotifier {
       );
 
       if (result != null) {
+        _logger.logAppState(
+          action: 'Background removal completed',
+          state: {'result_size': result.length},
+        );
         _state = _state.copyWith(processedImage: result, isProcessing: false);
       } else {
+        _logger.logWarning(
+          message: 'Background removal returned null',
+          context: {'provider': _state.selectedProvider},
+        );
         _state = _state.copyWith(
           errorMessage: 'Не удалось обработать изображение',
           isProcessing: false,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Background removal failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
       _state = _state.copyWith(
         errorMessage: _formatErrorMessage(e.toString()),
         isProcessing: false,
@@ -130,14 +176,30 @@ class ImageProcessingController extends ChangeNotifier {
       );
 
       if (result != null) {
+        _logger.logAppState(
+          action: 'Background blur completed',
+          state: {'result_size': result.length},
+        );
         _state = _state.copyWith(processedImage: result, isProcessing: false);
       } else {
+        _logger.logWarning(
+          message: 'Background blur returned null',
+          context: {
+            'provider': _state.selectedProvider,
+            'blur_radius': _state.blurRadius,
+          },
+        );
         _state = _state.copyWith(
           errorMessage: 'Не удалось размыть фон',
           isProcessing: false,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Background blur failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
       _state = _state.copyWith(
         errorMessage: _formatErrorMessage(e.toString()),
         isProcessing: false,

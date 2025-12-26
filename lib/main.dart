@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'screens/background_editor_page.dart';
+import 'services/logger_service.dart';
 
 void main() {
+  // Инициализация логирования
+  final logger = LoggerService();
+  logger.init();
+  logger.logInfo(message: 'Application started');
+
   runApp(const MyApp());
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
+import 'logger_service.dart';
 
 class BackgroundService {
   // Remove.bg API endpoint
@@ -16,24 +17,73 @@ class BackgroundService {
   // API ключ - пользователь должен указать свой
   String? apiKey;
   String apiProvider = 'removebg'; // 'removebg', 'photoroom', 'clipdrop'
+  final LoggerService _logger = LoggerService();
 
-  BackgroundService({this.apiKey, this.apiProvider = 'removebg'});
+  BackgroundService({this.apiKey, this.apiProvider = 'removebg'}) {
+    _logger.init();
+  }
 
   /// Удаление фона с изображения (из байтов) - поддерживает веб
   Future<Uint8List?> removeBackgroundFromBytes(Uint8List imageBytes) async {
+    final stopwatch = Stopwatch()..start();
+
+    _logger.logImageProcessing(
+      operation: 'Remove Background',
+      imageSize: imageBytes.length,
+      parameters: {'provider': apiProvider},
+    );
+
     try {
+      Uint8List? result;
       switch (apiProvider) {
         case 'removebg':
-          return await _removeBackgroundRemoveBgFromBytes(imageBytes);
+          result = await _removeBackgroundRemoveBgFromBytes(imageBytes);
+          break;
         case 'photoroom':
-          return await _removeBackgroundPhotoRoomFromBytes(imageBytes);
+          result = await _removeBackgroundPhotoRoomFromBytes(imageBytes);
+          break;
         case 'clipdrop':
-          return await _removeBackgroundClipdropFromBytes(imageBytes);
+          result = await _removeBackgroundClipdropFromBytes(imageBytes);
+          break;
         default:
-          return await _removeBackgroundRemoveBgFromBytes(imageBytes);
+          result = await _removeBackgroundRemoveBgFromBytes(imageBytes);
       }
-    } catch (e) {
-      debugPrint('Error removing background: $e');
+
+      stopwatch.stop();
+
+      if (result != null) {
+        _logger.logImageProcessing(
+          operation: 'Remove Background - Success',
+          imageSize: result.length,
+          parameters: {
+            'provider': apiProvider,
+            'duration_ms': stopwatch.elapsedMilliseconds,
+          },
+        );
+      } else {
+        _logger.logWarning(
+          message: 'Remove Background returned null',
+          context: {
+            'provider': apiProvider,
+            'duration_ms': stopwatch.elapsedMilliseconds,
+          },
+        );
+      }
+
+      return result;
+    } catch (e, stackTrace) {
+      stopwatch.stop();
+      _logger.logApiError(
+        provider: apiProvider,
+        statusCode: 0,
+        error: e.toString(),
+        duration: stopwatch.elapsed,
+      );
+      _logger.logError(
+        message: 'Error removing background',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -42,9 +92,23 @@ class BackgroundService {
   Future<Uint8List?> _removeBackgroundRemoveBgFromBytes(
     Uint8List imageBytes,
   ) async {
+    final stopwatch = Stopwatch()..start();
+
     if (apiKey == null || apiKey!.isEmpty) {
+      _logger.logError(
+        message: 'Remove.bg API key is missing',
+        error: Exception('API key is required for Remove.bg'),
+        stackTrace: null,
+      );
       throw Exception('API key is required for Remove.bg');
     }
+
+    _logger.logApiRequest(
+      provider: 'Remove.bg',
+      endpoint: removeBgApiUrl,
+      headers: {'X-Api-Key': '***'},
+      imageSize: imageBytes.length,
+    );
 
     var request = http.MultipartRequest('POST', Uri.parse(removeBgApiUrl));
     request.headers.addAll({'X-Api-Key': apiKey!});
@@ -58,11 +122,27 @@ class BackgroundService {
     request.fields['size'] = 'auto';
 
     var response = await request.send();
+    stopwatch.stop();
+
     if (response.statusCode == 200) {
       var responseBytes = await response.stream.toBytes();
+      _logger.logApiSuccess(
+        provider: 'Remove.bg',
+        statusCode: response.statusCode,
+        responseSize: responseBytes.length,
+        duration: stopwatch.elapsed,
+      );
       return responseBytes;
     } else {
       var errorBody = await response.stream.bytesToString();
+      _logger.logApiError(
+        provider: 'Remove.bg',
+        statusCode: response.statusCode,
+        error: 'API request failed',
+        errorBody: errorBody,
+        duration: stopwatch.elapsed,
+      );
+
       // Парсим JSON ошибки для более понятного сообщения
       try {
         final errorJson = errorBody;
@@ -126,9 +206,23 @@ class BackgroundService {
   Future<Uint8List?> _removeBackgroundClipdropFromBytes(
     Uint8List imageBytes,
   ) async {
+    final stopwatch = Stopwatch()..start();
+
     if (apiKey == null || apiKey!.isEmpty) {
+      _logger.logError(
+        message: 'Clipdrop API key is missing',
+        error: Exception('API key is required for Clipdrop'),
+        stackTrace: null,
+      );
       throw Exception('API key is required for Clipdrop');
     }
+
+    _logger.logApiRequest(
+      provider: 'Clipdrop',
+      endpoint: clipdropApiUrl,
+      headers: {'x-api-key': '***'},
+      imageSize: imageBytes.length,
+    );
 
     var request = http.MultipartRequest('POST', Uri.parse(clipdropApiUrl));
     request.headers.addAll({'x-api-key': apiKey!});
@@ -141,11 +235,26 @@ class BackgroundService {
     );
 
     var response = await request.send();
+    stopwatch.stop();
+
     if (response.statusCode == 200) {
       var responseBytes = await response.stream.toBytes();
+      _logger.logApiSuccess(
+        provider: 'Clipdrop',
+        statusCode: response.statusCode,
+        responseSize: responseBytes.length,
+        duration: stopwatch.elapsed,
+      );
       return responseBytes;
     } else {
       var errorBody = await response.stream.bytesToString();
+      _logger.logApiError(
+        provider: 'Clipdrop',
+        statusCode: response.statusCode,
+        error: 'API request failed',
+        errorBody: errorBody,
+        duration: stopwatch.elapsed,
+      );
       throw Exception(
         'Clipdrop API error: ${response.statusCode} - $errorBody',
       );
@@ -158,10 +267,22 @@ class BackgroundService {
     Uint8List imageBytes, {
     double blurRadius = 10.0,
   }) async {
+    final stopwatch = Stopwatch()..start();
+
+    _logger.logImageProcessing(
+      operation: 'Blur Background',
+      imageSize: imageBytes.length,
+      parameters: {'blur_radius': blurRadius, 'provider': apiProvider},
+    );
+
     try {
       // Сначала получаем изображение без фона
       Uint8List? imageWithoutBg = await removeBackgroundFromBytes(imageBytes);
       if (imageWithoutBg == null) {
+        _logger.logWarning(
+          message: 'Background removal failed, blurring full image',
+          context: {'blur_radius': blurRadius},
+        );
         // Если не удалось удалить фон, размываем все изображение
         return _blurFullImageFromBytes(imageBytes, blurRadius);
       }
@@ -200,9 +321,26 @@ class BackgroundService {
       // - Непрозрачные пиксели (объект) заменяются из изображения без фона
       img.compositeImage(result, resizedNoBg, dstX: 0, dstY: 0);
 
-      return Uint8List.fromList(img.encodePng(result));
-    } catch (e) {
-      debugPrint('Error blurring background: $e');
+      stopwatch.stop();
+      final resultBytes = Uint8List.fromList(img.encodePng(result));
+
+      _logger.logImageProcessing(
+        operation: 'Blur Background - Success',
+        imageSize: resultBytes.length,
+        parameters: {
+          'blur_radius': blurRadius,
+          'duration_ms': stopwatch.elapsedMilliseconds,
+        },
+      );
+
+      return resultBytes;
+    } catch (e, stackTrace) {
+      stopwatch.stop();
+      _logger.logError(
+        message: 'Error blurring background',
+        error: e,
+        stackTrace: stackTrace,
+      );
       // Fallback: просто размываем все изображение
       return _blurFullImageFromBytes(imageBytes, blurRadius);
     }
@@ -211,13 +349,37 @@ class BackgroundService {
   /// Размытие всего изображения (из байтов)
   Uint8List? _blurFullImageFromBytes(Uint8List imageBytes, double blurRadius) {
     try {
+      _logger.logImageProcessing(
+        operation: 'Blur Full Image',
+        imageSize: imageBytes.length,
+        parameters: {'blur_radius': blurRadius},
+      );
+
       final image = img.decodeImage(imageBytes);
-      if (image == null) return null;
+      if (image == null) {
+        _logger.logWarning(
+          message: 'Failed to decode image for blurring',
+          context: null,
+        );
+        return null;
+      }
 
       img.gaussianBlur(image, radius: blurRadius.toInt());
-      return Uint8List.fromList(img.encodePng(image));
-    } catch (e) {
-      debugPrint('Error blurring full image: $e');
+      final result = Uint8List.fromList(img.encodePng(image));
+
+      _logger.logImageProcessing(
+        operation: 'Blur Full Image - Success',
+        imageSize: result.length,
+        parameters: {'blur_radius': blurRadius},
+      );
+
+      return result;
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Error blurring full image',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }

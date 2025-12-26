@@ -14,6 +14,7 @@ import '../widgets/error_message.dart';
 import '../widgets/loading_indicator.dart';
 import '../utils/web_download_stub.dart'
     if (dart.library.html) '../utils/web_download.dart';
+import '../services/logger_service.dart';
 
 /// Главный экран приложения для обработки изображений
 class BackgroundEditorPage extends StatefulWidget {
@@ -25,10 +26,13 @@ class BackgroundEditorPage extends StatefulWidget {
 
 class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
   late final ImageProcessingController _controller;
+  final LoggerService _logger = LoggerService();
 
   @override
   void initState() {
     super.initState();
+    _logger.init();
+    _logger.logAppState(action: 'Screen initialized');
     _controller = ImageProcessingController();
     _controller.addListener(_onStateChanged);
   }
@@ -138,6 +142,12 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
         final file = File(path.join(directory.path, filename));
         await file.writeAsBytes(_controller.state.processedImage!);
 
+        _logger.logFileSave(
+          path: file.path,
+          fileSize: _controller.state.processedImage!.length,
+          success: true,
+        );
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -147,7 +157,19 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logger.logFileSave(
+        path: '',
+        fileSize: 0,
+        success: false,
+        error: e.toString(),
+      );
+      _logger.logError(
+        message: 'Error saving image',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка сохранения: $e')),
