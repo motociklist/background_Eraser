@@ -202,8 +202,8 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colorScheme.primaryContainer.withOpacity(0.3),
-              colorScheme.secondaryContainer.withOpacity(0.2),
+              colorScheme.primaryContainer.withValues(alpha: 0.3),
+              colorScheme.secondaryContainer.withValues(alpha: 0.2),
               Colors.white,
             ],
           ),
@@ -235,7 +235,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                               end: Alignment.bottomRight,
                               colors: [
                                 colorScheme.primary,
-                                colorScheme.primary.withOpacity(0.8),
+                                colorScheme.primary.withValues(alpha: 0.8),
                               ],
                             ),
                           ),
@@ -452,7 +452,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                                 colors: [
                                                   colorScheme.primary,
                                                   colorScheme.primary
-                                                      .withOpacity(0.8),
+                                                      .withValues(alpha: 0.8),
                                                 ],
                                               ),
                                               borderRadius:

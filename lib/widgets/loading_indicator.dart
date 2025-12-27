@@ -17,8 +17,8 @@ class LoadingIndicator extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            colorScheme.primaryContainer.withOpacity(0.3),
-            colorScheme.secondaryContainer.withOpacity(0.2),
+            colorScheme.primaryContainer.withValues(alpha: 0.3),
+            colorScheme.secondaryContainer.withValues(alpha: 0.2),
             Colors.white,
           ],
         ),
@@ -34,7 +34,7 @@ class LoadingIndicator extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.2),
+                    color: colorScheme.primary.withValues(alpha: 0.2),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -57,7 +57,7 @@ class LoadingIndicator extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

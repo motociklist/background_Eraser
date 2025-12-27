@@ -166,13 +166,16 @@ class ImageProcessingController extends ChangeNotifier {
     );
     notifyListeners();
 
-    _logger.logAppState(
-      action: 'Starting background removal',
-      state: {
-        'provider': _state.selectedProvider,
-        'image_size': _state.selectedImageBytes!.length,
-      },
-    );
+    // Логирование откладываем, чтобы не блокировать UI
+    Future.microtask(() {
+      _logger.logAppState(
+        action: 'Starting background removal',
+        state: {
+          'provider': _state.selectedProvider,
+          'image_size': _state.selectedImageBytes!.length,
+        },
+      );
+    });
 
     try {
       // Используем API ключ из контроллера
@@ -184,37 +187,49 @@ class ImageProcessingController extends ChangeNotifier {
       );
 
       if (result != null) {
-        _logger.logAppState(
-          action: 'Background removal completed',
-          state: {'result_size': result.length},
-        );
+        // Устанавливаем результат и завершаем обработку одновременно
         _state = _state.copyWith(
           processedImage: result,
           isProcessing: false,
           errorMessage: null, // Явно очищаем ошибку при успехе
         );
+        notifyListeners();
+        // Логирование после обновления UI
+        Future.microtask(() {
+          _logger.logAppState(
+            action: 'Background removal completed',
+            state: {'result_size': result.length},
+          );
+        });
       } else {
-        _logger.logWarning(
-          message: 'Background removal returned null',
-          context: {'provider': _state.selectedProvider},
-        );
         _state = _state.copyWith(
           errorMessage: 'Не удалось обработать изображение',
           isProcessing: false,
         );
+        notifyListeners();
+        // Логирование после обновления UI
+        Future.microtask(() {
+          _logger.logWarning(
+            message: 'Background removal returned null',
+            context: {'provider': _state.selectedProvider},
+          );
+        });
       }
     } catch (e, stackTrace) {
-      _logger.logError(
-        message: 'Background removal failed',
-        error: e,
-        stackTrace: stackTrace,
-      );
       _state = _state.copyWith(
         errorMessage: _formatErrorMessage(e.toString()),
         isProcessing: false,
       );
+      notifyListeners();
+      // Логирование после обновления UI
+      Future.microtask(() {
+        _logger.logError(
+          message: 'Background removal failed',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      });
     }
-    notifyListeners();
   }
 
   /// Размытие фона
@@ -254,40 +269,52 @@ class ImageProcessingController extends ChangeNotifier {
       );
 
       if (result != null) {
-        _logger.logAppState(
-          action: 'Background blur completed',
-          state: {'result_size': result.length},
-        );
+        // Устанавливаем результат и завершаем обработку одновременно
         _state = _state.copyWith(
           processedImage: result,
           isProcessing: false,
           errorMessage: null, // Явно очищаем ошибку при успехе
         );
+        notifyListeners();
+        // Логирование после обновления UI
+        Future.microtask(() {
+          _logger.logAppState(
+            action: 'Background blur completed',
+            state: {'result_size': result.length},
+          );
+        });
       } else {
-        _logger.logWarning(
-          message: 'Background blur returned null',
-          context: {
-            'provider': _state.selectedProvider,
-            'blur_radius': _state.blurRadius,
-          },
-        );
         _state = _state.copyWith(
           errorMessage: 'Не удалось размыть фон',
           isProcessing: false,
         );
+        notifyListeners();
+        // Логирование после обновления UI
+        Future.microtask(() {
+          _logger.logWarning(
+            message: 'Background blur returned null',
+            context: {
+              'provider': _state.selectedProvider,
+              'blur_radius': _state.blurRadius,
+            },
+          );
+        });
       }
     } catch (e, stackTrace) {
-      _logger.logError(
-        message: 'Background blur failed',
-        error: e,
-        stackTrace: stackTrace,
-      );
       _state = _state.copyWith(
         errorMessage: _formatErrorMessage(e.toString()),
         isProcessing: false,
       );
+      notifyListeners();
+      // Логирование после обновления UI
+      Future.microtask(() {
+        _logger.logError(
+          message: 'Background blur failed',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      });
     }
-    notifyListeners();
   }
 
   /// Обновление провайдера

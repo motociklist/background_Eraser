@@ -28,7 +28,7 @@ class ProcessButtons extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 colorScheme.primary,
-                colorScheme.primary.withOpacity(0.8),
+                colorScheme.primary.withValues(alpha: 0.8),
               ],
             ),
             isDisabled: isProcessing,
@@ -41,10 +41,7 @@ class ProcessButtons extends StatelessWidget {
             icon: Icons.blur_on,
             label: 'Размыть фон',
             gradient: LinearGradient(
-              colors: [
-                Colors.purple.shade600,
-                Colors.purple.shade400,
-              ],
+              colors: [Colors.purple.shade600, Colors.purple.shade400],
             ),
             isDisabled: isProcessing,
           ),
@@ -80,7 +77,7 @@ class _GradientButton extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -108,4 +105,3 @@ class _GradientButton extends StatelessWidget {
     );
   }
 }
-

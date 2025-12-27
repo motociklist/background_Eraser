@@ -17,7 +17,8 @@ class ProviderSelector extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return DropdownButtonFormField<String>(
-      value: selectedProvider,
+      key: ValueKey(selectedProvider),
+      initialValue: selectedProvider,
       decoration: InputDecoration(
         labelText: 'API Провайдер',
         hintText: 'Выберите провайдера',
@@ -29,8 +30,11 @@ class ProviderSelector extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.remove_circle_outline,
-                  size: 18, color: Colors.blue.shade700),
+              Icon(
+                Icons.remove_circle_outline,
+                size: 18,
+                color: Colors.blue.shade700,
+              ),
               const SizedBox(width: 8),
               const Flexible(child: Text('Remove.bg')),
             ],
@@ -41,8 +45,7 @@ class ProviderSelector extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.photo_camera,
-                  size: 18, color: Colors.green.shade700),
+              Icon(Icons.photo_camera, size: 18, color: Colors.green.shade700),
               const SizedBox(width: 8),
               const Flexible(child: Text('PhotoRoom')),
             ],
@@ -68,4 +71,3 @@ class ProviderSelector extends StatelessWidget {
     );
   }
 }
-

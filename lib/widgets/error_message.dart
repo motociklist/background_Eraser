@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 class ErrorMessage extends StatelessWidget {
   final String message;
 
-  const ErrorMessage({
-    super.key,
-    required this.message,
-  });
+  const ErrorMessage({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +14,14 @@ class ErrorMessage extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             Colors.red.shade50,
-            Colors.red.shade100.withOpacity(0.5),
+            Colors.red.shade100.withValues(alpha: 0.5),
           ],
         ),
         border: Border.all(color: Colors.red.shade300, width: 2),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withOpacity(0.1),
+            color: Colors.red.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -38,8 +35,11 @@ class ErrorMessage extends StatelessWidget {
               color: Colors.red.shade100,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.error_outline,
-                color: Colors.red.shade700, size: 24),
+            child: Icon(
+              Icons.error_outline,
+              color: Colors.red.shade700,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -57,4 +57,3 @@ class ErrorMessage extends StatelessWidget {
     );
   }
 }
-

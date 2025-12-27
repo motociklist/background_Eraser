@@ -5,10 +5,7 @@ import 'package:image_picker/image_picker.dart';
 class ImagePickerButtons extends StatelessWidget {
   final Function(ImageSource) onImagePicked;
 
-  const ImagePickerButtons({
-    super.key,
-    required this.onImagePicked,
-  });
+  const ImagePickerButtons({super.key, required this.onImagePicked});
 
   @override
   Widget build(BuildContext context) {
@@ -56,9 +53,9 @@ class _ImagePickerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 2),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -88,4 +85,3 @@ class _ImagePickerButton extends StatelessWidget {
     );
   }
 }
-
