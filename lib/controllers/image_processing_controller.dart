@@ -229,7 +229,9 @@ class ImageProcessingController extends ChangeNotifier {
   }
 
   String _formatErrorMessage(String errorStr) {
-    if (errorStr.contains('Не удалось определить')) {
+    if (errorStr.contains('Недостаточно')) {
+      return errorStr.replaceAll('Exception: ', '');
+    } else if (errorStr.contains('Не удалось определить')) {
       return errorStr.replaceAll('Exception: ', '');
     } else if (errorStr.contains('Превышен лимит')) {
       return errorStr.replaceAll('Exception: ', '');
