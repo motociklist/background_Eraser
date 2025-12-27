@@ -35,6 +35,12 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
     _logger.logAppState(action: 'Screen initialized');
     _controller = ImageProcessingController();
     _controller.addListener(_onStateChanged);
+    // Ждем загрузки настроек и обновляем UI
+    _controller.loadSettings().then((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   void _onStateChanged() {

@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/app_state.dart';
 import '../services/background_service.dart';
 import '../services/logger_service.dart';
+import '../services/storage_service.dart';
 
 /// Контроллер для управления обработкой изображений
 class ImageProcessingController extends ChangeNotifier {
   final BackgroundService _backgroundService = BackgroundService();
   final ImagePicker _imagePicker = ImagePicker();
   final LoggerService _logger = LoggerService();
+  final StorageService _storageService = StorageService();
 
   AppState _state = const AppState();
   AppState get state => _state;
@@ -19,10 +22,81 @@ class ImageProcessingController extends ChangeNotifier {
     _logger.init();
     apiKeyController.addListener(_onApiKeyChanged);
     _logger.logAppState(action: 'Controller initialized');
+    // Загружаем настройки асинхронно после инициализации
+    loadSettings();
   }
 
+  /// Загрузка сохраненных настроек
+  Future<void> loadSettings() async {
+    try {
+      // Убеждаемся, что Hive инициализирован
+      if (_storageService.settingsBox == null) {
+        await _storageService.init();
+      }
+
+      final settings = _storageService.loadSettings();
+      if (settings != null) {
+        // Загружаем API ключ
+        if (settings.apiKey != null && settings.apiKey!.isNotEmpty) {
+          apiKeyController.text = settings.apiKey!;
+        }
+
+        // Загружаем провайдера
+        if (settings.apiProvider.isNotEmpty) {
+          _state = _state.copyWith(selectedProvider: settings.apiProvider);
+        }
+
+        // Загружаем радиус размытия
+        if (settings.blurRadius > 0) {
+          _state = _state.copyWith(blurRadius: settings.blurRadius);
+        }
+
+        _logger.logInfo(
+          message: 'Settings loaded from storage',
+          data: {
+            'provider': settings.apiProvider,
+            'has_api_key':
+                settings.apiKey != null && settings.apiKey!.isNotEmpty,
+            'blur_radius': settings.blurRadius,
+          },
+        );
+
+        notifyListeners();
+      } else {
+        _logger.logInfo(message: 'No saved settings found');
+      }
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Failed to load settings',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Timer? _saveApiKeyTimer;
+
   void _onApiKeyChanged() {
-    _state = _state.copyWith(apiKey: apiKeyController.text);
+    final apiKey = apiKeyController.text.trim();
+    _state = _state.copyWith(apiKey: apiKey);
+
+    // Отменяем предыдущий таймер, если он есть
+    _saveApiKeyTimer?.cancel();
+
+    // Сохраняем API ключ при изменении (с небольшой задержкой, чтобы не сохранять при каждом символе)
+    _saveApiKeyTimer = Timer(const Duration(milliseconds: 1000), () {
+      final currentKey = apiKeyController.text.trim();
+      _storageService
+          .saveApiKey(currentKey.isEmpty ? null : currentKey)
+          .catchError((e) {
+            _logger.logError(
+              message: 'Failed to save API key',
+              error: e,
+              stackTrace: null,
+            );
+          });
+    });
+
     notifyListeners();
   }
 
@@ -219,12 +293,14 @@ class ImageProcessingController extends ChangeNotifier {
   /// Обновление провайдера
   void updateProvider(String provider) {
     _state = _state.copyWith(selectedProvider: provider);
+    _storageService.saveProvider(provider);
     notifyListeners();
   }
 
   /// Обновление радиуса размытия
   void updateBlurRadius(double radius) {
     _state = _state.copyWith(blurRadius: radius);
+    _storageService.saveBlurRadius(radius);
     notifyListeners();
   }
 
@@ -244,6 +320,7 @@ class ImageProcessingController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _saveApiKeyTimer?.cancel();
     apiKeyController.dispose();
     super.dispose();
   }

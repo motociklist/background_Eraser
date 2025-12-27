@@ -1,12 +1,28 @@
 import 'package:flutter/material.dart';
 import 'screens/background_editor_page.dart';
 import 'services/logger_service.dart';
+import 'services/storage_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Инициализация логирования
   final logger = LoggerService();
   logger.init();
   logger.logInfo(message: 'Application started');
+
+  // Инициализация Hive
+  try {
+    final storageService = StorageService();
+    await storageService.init();
+    logger.logInfo(message: 'Hive initialized successfully');
+  } catch (e) {
+    logger.logError(
+      message: 'Failed to initialize Hive',
+      error: e,
+      stackTrace: null,
+    );
+  }
 
   runApp(const MyApp());
 }
