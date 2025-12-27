@@ -270,12 +270,17 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                               color: colorScheme.primary,
                                             ),
                                             const SizedBox(width: 8),
-                                            Text(
-                                              'Настройки',
-                                              style: theme.textTheme.titleLarge
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                            Expanded(
+                                              child: Text(
+                                                'Настройки',
+                                                style: theme
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -314,12 +319,17 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                               color: colorScheme.primary,
                                             ),
                                             const SizedBox(width: 8),
-                                            Text(
-                                              'Выбор изображения',
-                                              style: theme.textTheme.titleLarge
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                            Expanded(
+                                              child: Text(
+                                                'Выбор изображения',
+                                                style: theme
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -350,15 +360,17 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                                 color: colorScheme.primary,
                                               ),
                                               const SizedBox(width: 8),
-                                              Text(
-                                                'Оригинальное изображение',
-                                                style: theme
-                                                    .textTheme
-                                                    .titleLarge
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
+                                              Expanded(
+                                                child: Text(
+                                                  'Оригинальное изображение',
+                                                  style: theme
+                                                      .textTheme
+                                                      .titleLarge
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -414,15 +426,17 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                                 color: Colors.green,
                                               ),
                                               const SizedBox(width: 8),
-                                              Text(
-                                                'Обработанное изображение',
-                                                style: theme
-                                                    .textTheme
-                                                    .titleLarge
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
+                                              Expanded(
+                                                child: Text(
+                                                  'Обработанное изображение',
+                                                  style: theme
+                                                      .textTheme
+                                                      .titleLarge
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
                                               ),
                                             ],
                                           ),
