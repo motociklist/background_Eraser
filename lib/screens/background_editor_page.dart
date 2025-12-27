@@ -123,14 +123,16 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                 if (!await directory.exists()) {
                   await directory.create(recursive: true);
                 }
-                saveMessage = 'Изображение сохранено в папку "Изображения/BackgroundEraser"';
+                saveMessage =
+                    'Изображение сохранено в папку "Изображения/BackgroundEraser"';
               } else {
                 throw Exception('Не удалось получить доступ');
               }
             } catch (_) {
               // Последний fallback: внутреннее хранилище
               directory = await getApplicationDocumentsDirectory();
-              saveMessage = 'Изображение сохранено во внутреннее хранилище приложения';
+              saveMessage =
+                  'Изображение сохранено во внутреннее хранилище приложения';
             }
           }
         } else if (Platform.isIOS) {
@@ -177,9 +179,9 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сохранения: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
       }
     }
   }
@@ -187,86 +189,301 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
   @override
   Widget build(BuildContext context) {
     final state = _controller.state;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 600;
+    final maxContentWidth = isWideScreen ? 800.0 : double.infinity;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Background Eraser / Blur'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: state.isProcessing
-          ? const LoadingIndicator(message: 'Обработка изображения...')
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // API Key Input
-                  ApiKeyInput(controller: _controller.apiKeyController),
-                  const SizedBox(height: 12),
-
-                  // Provider Selector
-                  ProviderSelector(
-                    selectedProvider: state.selectedProvider,
-                    onChanged: _controller.updateProvider,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Image Picker Buttons
-                  ImagePickerButtons(
-                    onImagePicked: _controller.pickImage,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Original Image
-                  if (state.selectedImageBytes != null) ...[
-                    ImageDisplay(
-                      imageBytes: state.selectedImageBytes!,
-                      title: 'Original Image:',
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primaryContainer.withOpacity(0.3),
+              colorScheme.secondaryContainer.withOpacity(0.2),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: state.isProcessing
+              ? const LoadingIndicator(message: 'Обработка изображения...')
+              : CustomScrollView(
+                  slivers: [
+                    // App Bar
+                    SliverAppBar(
+                      expandedHeight: 120,
+                      floating: false,
+                      pinned: true,
+                      elevation: 0,
+                      flexibleSpace: FlexibleSpaceBar(
+                        title: const Text(
+                          'Background Editor',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        centerTitle: true,
+                        background: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                colorScheme.primary,
+                                colorScheme.primary.withOpacity(0.8),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    // Content
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: maxContentWidth,
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(isWideScreen ? 24.0 : 16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Settings Card
+                                Card(
+                                  elevation: 4,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.settings,
+                                              color: colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Настройки',
+                                              style: theme.textTheme.titleLarge
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 20),
+                                        // API Key Input
+                                        ApiKeyInput(
+                                          controller:
+                                              _controller.apiKeyController,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        // Provider Selector
+                                        ProviderSelector(
+                                          selectedProvider:
+                                              state.selectedProvider,
+                                          onChanged: _controller.updateProvider,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
 
-                    // Process Buttons
-                    ProcessButtons(
-                      isProcessing: state.isProcessing,
-                      onRemoveBackground: _controller.removeBackground,
-                      onBlurBackground: _controller.blurBackground,
-                    ),
-                    const SizedBox(height: 16),
+                                // Image Picker Card
+                                Card(
+                                  elevation: 4,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.image,
+                                              color: colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Выбор изображения',
+                                              style: theme.textTheme.titleLarge
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ImagePickerButtons(
+                                          onImagePicked: _controller.pickImage,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
 
-                    // Blur Slider
-                    BlurSlider(
-                      value: state.blurRadius,
-                      onChanged: _controller.updateBlurRadius,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                                // Original Image
+                                if (state.selectedImageBytes != null) ...[
+                                  const SizedBox(height: 20),
+                                  Card(
+                                    elevation: 4,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.photo,
+                                                color: colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Оригинальное изображение',
+                                                style: theme
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ImageDisplay(
+                                            imageBytes:
+                                                state.selectedImageBytes!,
+                                            title: '',
+                                          ),
+                                          const SizedBox(height: 20),
+                                          // Process Buttons
+                                          ProcessButtons(
+                                            isProcessing: state.isProcessing,
+                                            onRemoveBackground:
+                                                _controller.removeBackground,
+                                            onBlurBackground:
+                                                _controller.blurBackground,
+                                          ),
+                                          const SizedBox(height: 20),
+                                          // Blur Slider
+                                          BlurSlider(
+                                            value: state.blurRadius,
+                                            onChanged:
+                                                _controller.updateBlurRadius,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
 
-                  // Error Message
-                  if (state.errorMessage != null) ...[
-                    ErrorMessage(message: state.errorMessage!),
-                    const SizedBox(height: 16),
-                  ],
+                                // Error Message
+                                if (state.errorMessage != null) ...[
+                                  const SizedBox(height: 20),
+                                  ErrorMessage(message: state.errorMessage!),
+                                ],
 
-                  // Processed Image
-                  if (state.processedImage != null) ...[
-                    ImageDisplay(
-                      imageBytes: state.processedImage!,
-                      title: 'Processed Image:',
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _saveImage,
-                      icon: const Icon(Icons.save),
-                      label: const Text('Save Image'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                // Processed Image
+                                if (state.processedImage != null) ...[
+                                  const SizedBox(height: 20),
+                                  Card(
+                                    elevation: 4,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.check_circle,
+                                                color: Colors.green,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Обработанное изображение',
+                                                style: theme
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ImageDisplay(
+                                            imageBytes: state.processedImage!,
+                                            title: '',
+                                          ),
+                                          const SizedBox(height: 20),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  colorScheme.primary,
+                                                  colorScheme.primary
+                                                      .withOpacity(0.8),
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: ElevatedButton.icon(
+                                              onPressed: _saveImage,
+                                              icon: const Icon(
+                                                Icons.download,
+                                                color: Colors.white,
+                                              ),
+                                              label: const Text(
+                                                'Сохранить изображение',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors
+                                                    .transparent, // Прозрачный для градиента
+                                                shadowColor: Colors.transparent,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 18,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
+                ),
+        ),
+      ),
     );
   }
 }
-

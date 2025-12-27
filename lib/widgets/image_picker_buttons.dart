@@ -12,30 +12,79 @@ class ImagePickerButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Row(
       children: [
         Expanded(
-          child: ElevatedButton.icon(
+          child: _ImagePickerButton(
             onPressed: () => onImagePicked(ImageSource.gallery),
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Gallery'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
+            icon: Icons.photo_library,
+            label: 'Галерея',
+            color: colorScheme.secondary,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
-          child: ElevatedButton.icon(
+          child: _ImagePickerButton(
             onPressed: () => onImagePicked(ImageSource.camera),
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Camera'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
+            icon: Icons.camera_alt,
+            label: 'Камера',
+            color: colorScheme.tertiary,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ImagePickerButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _ImagePickerButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3), width: 2),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

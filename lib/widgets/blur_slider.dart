@@ -5,44 +5,75 @@ class BlurSlider extends StatelessWidget {
   final double value;
   final ValueChanged<double> onChanged;
 
-  const BlurSlider({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const BlurSlider({super.key, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Blur Radius:',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            Text(
-              value.toStringAsFixed(1),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.shade200, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.blur_on, color: Colors.purple.shade600, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Радиус размытия',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple.shade900,
+                ),
               ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade600,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  value.toStringAsFixed(1),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: Colors.purple.shade600,
+              inactiveTrackColor: Colors.purple.shade200,
+              thumbColor: Colors.purple.shade600,
+              overlayColor: Colors.purple.shade100,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+              trackHeight: 4,
             ),
-          ],
-        ),
-        Slider(
-          value: value,
-          min: 1.0,
-          max: 50.0,
-          divisions: 49,
-          label: value.toStringAsFixed(1),
-          onChanged: onChanged,
-        ),
-      ],
+            child: Slider(
+              value: value,
+              min: 1.0,
+              max: 50.0,
+              divisions: 49,
+              label: value.toStringAsFixed(1),
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
-

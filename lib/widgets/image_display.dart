@@ -10,34 +10,50 @@ class ImageDisplay extends StatelessWidget {
   const ImageDisplay({
     super.key,
     required this.imageBytes,
-    required this.title,
+    this.title = '',
     this.height = 300,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        if (title.isNotEmpty) ...[
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 12),
+        ],
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.memory(
-              imageBytes,
-              fit: BoxFit.contain,
-              height: height,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Image.memory(
+                imageBytes,
+                fit: BoxFit.contain,
+                height: height,
+                width: double.infinity,
+              ),
             ),
           ),
         ),

@@ -13,41 +13,49 @@ class ProviderSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return DropdownButtonFormField<String>(
-      initialValue: selectedProvider,
-      decoration: const InputDecoration(
-        labelText: 'API Provider',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.cloud),
+      value: selectedProvider,
+      decoration: InputDecoration(
+        labelText: 'API Провайдер',
+        hintText: 'Выберите провайдера',
+        prefixIcon: Icon(Icons.cloud, color: colorScheme.primary),
       ),
-      items: const [
+      items: [
         DropdownMenuItem(
           value: 'removebg',
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.remove_circle_outline, size: 20),
-              SizedBox(width: 8),
-              Text('Remove.bg'),
+              Icon(Icons.remove_circle_outline,
+                  size: 18, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              const Flexible(child: Text('Remove.bg')),
             ],
           ),
         ),
         DropdownMenuItem(
           value: 'photoroom',
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.photo_camera, size: 20),
-              SizedBox(width: 8),
-              Text('PhotoRoom'),
+              Icon(Icons.photo_camera,
+                  size: 18, color: Colors.green.shade700),
+              const SizedBox(width: 8),
+              const Flexible(child: Text('PhotoRoom')),
             ],
           ),
         ),
         DropdownMenuItem(
           value: 'clipdrop',
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cut, size: 20),
-              SizedBox(width: 8),
-              Text('Clipdrop'),
+              Icon(Icons.cut, size: 18, color: Colors.orange.shade700),
+              const SizedBox(width: 8),
+              const Flexible(child: Text('Clipdrop')),
             ],
           ),
         ),
