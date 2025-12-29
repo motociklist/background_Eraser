@@ -4,15 +4,17 @@ import 'package:image_picker/image_picker.dart';
 import '../models/app_state.dart';
 import '../services/background_service.dart';
 import '../services/logger_service.dart';
-import '../services/storage_service.dart';
 import '../services/analytics_service.dart';
+import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 
 /// Контроллер для управления обработкой изображений
 class ImageProcessingController extends ChangeNotifier {
   final BackgroundService _backgroundService = BackgroundService();
   final ImagePicker _imagePicker = ImagePicker();
   final LoggerService _logger = LoggerService();
-  final StorageService _storageService = StorageService();
+  final FirestoreService _firestoreService = FirestoreService.instance;
+  final AuthService _authService = AuthService.instance;
 
   AppState _state = const AppState();
   AppState get state => _state;
@@ -30,42 +32,49 @@ class ImageProcessingController extends ChangeNotifier {
   /// Загрузка сохраненных настроек
   Future<void> loadSettings() async {
     try {
-      // Убеждаемся, что Hive инициализирован
-      if (_storageService.settingsBox == null) {
-        await _storageService.init();
+      // Если пользователь авторизован, загружаем из Firestore
+      if (_authService.isAuthenticated) {
+        final firestoreSettings = await _firestoreService.loadUserSettings();
+        if (firestoreSettings != null) {
+          // Загружаем API ключ из Firestore
+          if (firestoreSettings['apiKey'] != null &&
+              firestoreSettings['apiKey'].toString().isNotEmpty) {
+            apiKeyController.text = firestoreSettings['apiKey'].toString();
+          }
+
+          // Загружаем провайдера из Firestore
+          if (firestoreSettings['apiProvider'] != null &&
+              firestoreSettings['apiProvider'].toString().isNotEmpty) {
+            _state = _state.copyWith(
+              selectedProvider: firestoreSettings['apiProvider'].toString(),
+            );
+          }
+
+          // Загружаем радиус размытия из Firestore
+          if (firestoreSettings['blurRadius'] != null) {
+            final radius = firestoreSettings['blurRadius'] as double?;
+            if (radius != null && radius > 0) {
+              _state = _state.copyWith(blurRadius: radius);
+            }
+          }
+
+          _logger.logInfo(
+            message: 'Settings loaded from Firestore',
+            data: {
+              'provider': firestoreSettings['apiProvider']?.toString() ?? '',
+              'has_api_key': firestoreSettings['apiKey'] != null &&
+                  firestoreSettings['apiKey'].toString().isNotEmpty,
+              'blur_radius': firestoreSettings['blurRadius']?.toString() ?? '',
+            },
+          );
+
+          notifyListeners();
+          return;
+        }
       }
 
-      final settings = _storageService.loadSettings();
-      if (settings != null) {
-        // Загружаем API ключ
-        if (settings.apiKey != null && settings.apiKey!.isNotEmpty) {
-          apiKeyController.text = settings.apiKey!;
-        }
-
-        // Загружаем провайдера
-        if (settings.apiProvider.isNotEmpty) {
-          _state = _state.copyWith(selectedProvider: settings.apiProvider);
-        }
-
-        // Загружаем радиус размытия
-        if (settings.blurRadius > 0) {
-          _state = _state.copyWith(blurRadius: settings.blurRadius);
-        }
-
-        _logger.logInfo(
-          message: 'Settings loaded from storage',
-          data: {
-            'provider': settings.apiProvider,
-            'has_api_key':
-                settings.apiKey != null && settings.apiKey!.isNotEmpty,
-            'blur_radius': settings.blurRadius,
-          },
-        );
-
-        notifyListeners();
-      } else {
-        _logger.logInfo(message: 'No saved settings found');
-      }
+      // Если пользователь не авторизован, настройки не загружаются
+      _logger.logInfo(message: 'User not authenticated, settings not loaded');
     } catch (e, stackTrace) {
       _logger.logError(
         message: 'Failed to load settings',
@@ -87,15 +96,17 @@ class ImageProcessingController extends ChangeNotifier {
     // Сохраняем API ключ при изменении (с небольшой задержкой, чтобы не сохранять при каждом символе)
     _saveApiKeyTimer = Timer(const Duration(milliseconds: 1000), () {
       final currentKey = apiKeyController.text.trim();
-      _storageService
-          .saveApiKey(currentKey.isEmpty ? null : currentKey)
-          .catchError((e) {
-            _logger.logError(
-              message: 'Failed to save API key',
-              error: e,
-              stackTrace: null,
-            );
-          });
+
+      // Если пользователь авторизован, сохраняем в Firestore
+      if (_authService.isAuthenticated && currentKey.isNotEmpty) {
+        _firestoreService.saveApiKey(currentKey).catchError((e) {
+          _logger.logError(
+            message: 'Failed to save API key to Firestore',
+            error: e,
+            stackTrace: null,
+          );
+        });
+      }
     });
 
     notifyListeners();
@@ -421,7 +432,17 @@ class ImageProcessingController extends ChangeNotifier {
   /// Обновление провайдера
   void updateProvider(String provider) {
     _state = _state.copyWith(selectedProvider: provider);
-    _storageService.saveProvider(provider);
+
+    // Если пользователь авторизован, сохраняем в Firestore
+    if (_authService.isAuthenticated) {
+      _firestoreService.saveApiProvider(provider).catchError((e) {
+        _logger.logError(
+          message: 'Failed to save provider to Firestore',
+          error: e,
+          stackTrace: null,
+        );
+      });
+    }
     notifyListeners();
 
     // Аналитика: изменение провайдера
@@ -434,7 +455,17 @@ class ImageProcessingController extends ChangeNotifier {
   /// Обновление радиуса размытия
   void updateBlurRadius(double radius) {
     _state = _state.copyWith(blurRadius: radius);
-    _storageService.saveBlurRadius(radius);
+
+    // Если пользователь авторизован, сохраняем в Firestore
+    if (_authService.isAuthenticated) {
+      _firestoreService.saveBlurRadius(radius).catchError((e) {
+        _logger.logError(
+          message: 'Failed to save blur radius to Firestore',
+          error: e,
+          stackTrace: null,
+        );
+      });
+    }
     notifyListeners();
 
     // Аналитика: изменение радиуса размытия

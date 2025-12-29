@@ -6,7 +6,6 @@ import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
 import 'screens/background_editor_page.dart';
 import 'services/logger_service.dart';
-import 'services/storage_service.dart';
 import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
 import 'services/auth_service.dart';
@@ -35,18 +34,6 @@ void main() async {
     // Продолжаем работу даже если Firebase не инициализирован
   }
 
-  // Инициализация Hive
-  try {
-    final storageService = StorageService();
-    await storageService.init();
-    logger.logInfo(message: 'Hive initialized successfully');
-  } catch (e) {
-    logger.logError(
-      message: 'Failed to initialize Hive',
-      error: e,
-      stackTrace: null,
-    );
-  }
 
   // Инициализация аналитики
   try {
