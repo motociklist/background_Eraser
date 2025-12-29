@@ -62,17 +62,6 @@ class ProviderSelector extends StatelessWidget {
             ],
           ),
         ),
-        DropdownMenuItem(
-          value: 'freepik',
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.image, size: 18, color: Colors.purple.shade700),
-              const SizedBox(width: 8),
-              const Flexible(child: Text('Freepik')),
-            ],
-          ),
-        ),
       ],
       onChanged: (value) {
         if (value != null) {

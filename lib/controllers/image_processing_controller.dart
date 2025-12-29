@@ -171,9 +171,8 @@ class ImageProcessingController extends ChangeNotifier {
     }
 
     // Проверяем API ключ напрямую из контроллера
-    // Для Freepik не требуем ключ от пользователя
     final apiKey = apiKeyController.text.trim();
-    if (apiKey.isEmpty && _state.selectedProvider != 'freepik') {
+    if (apiKey.isEmpty) {
       _state = _state.copyWith(errorMessage: 'Пожалуйста, введите API ключ');
       notifyListeners();
       return;
@@ -208,12 +207,7 @@ class ImageProcessingController extends ChangeNotifier {
 
     try {
       // Используем API ключ из контроллера
-      // Для Freepik используем встроенный ключ, не требуем от пользователя
-      if (_state.selectedProvider == 'freepik') {
-        _backgroundService.apiKey = null; // Freepik использует встроенный ключ
-      } else {
-        _backgroundService.apiKey = apiKey;
-      }
+      _backgroundService.apiKey = apiKey;
       _backgroundService.apiProvider = _state.selectedProvider;
 
       final result = await _backgroundService.removeBackgroundFromBytes(
@@ -307,9 +301,8 @@ class ImageProcessingController extends ChangeNotifier {
     }
 
     // Проверяем API ключ напрямую из контроллера
-    // Для Freepik не требуем ключ от пользователя
     final apiKey = apiKeyController.text.trim();
-    if (apiKey.isEmpty && _state.selectedProvider != 'freepik') {
+    if (apiKey.isEmpty) {
       _state = _state.copyWith(errorMessage: 'Пожалуйста, введите API ключ');
       notifyListeners();
       return;
@@ -334,12 +327,7 @@ class ImageProcessingController extends ChangeNotifier {
 
     try {
       // Используем API ключ из контроллера
-      // Для Freepik используем встроенный ключ, не требуем от пользователя
-      if (_state.selectedProvider == 'freepik') {
-        _backgroundService.apiKey = null; // Freepik использует встроенный ключ
-      } else {
-        _backgroundService.apiKey = apiKey;
-      }
+      _backgroundService.apiKey = apiKey;
       _backgroundService.apiProvider = _state.selectedProvider;
 
       // Вызываем размытие напрямую, без промежуточного показа изображения без фона
