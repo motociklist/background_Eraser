@@ -17,7 +17,9 @@ import '../utils/web_download_stub.dart'
 import '../services/logger_service.dart';
 import '../services/analytics_service.dart';
 import '../services/ad_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/banner_ad_widget.dart';
+import 'auth_screen.dart';
 
 /// Главный экран приложения для обработки изображений
 class BackgroundEditorPage extends StatefulWidget {
@@ -30,6 +32,7 @@ class BackgroundEditorPage extends StatefulWidget {
 class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
   late final ImageProcessingController _controller;
   final LoggerService _logger = LoggerService();
+  final AuthService _authService = AuthService.instance;
 
   @override
   void initState() {
@@ -262,6 +265,42 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                       floating: false,
                       pinned: true,
                       elevation: 0,
+                      actions: [
+                        // Показываем email пользователя и кнопку выхода
+                        if (_authService.isAuthenticated) ...[
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Center(
+                              child: Text(
+                                _authService.userEmail ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                            tooltip: 'Выйти',
+                            onPressed: () async {
+                              // Сохраняем context перед async операцией
+                              final navigator = Navigator.of(context);
+                              await _authService.signOut();
+                              // Принудительно переходим на экран входа и очищаем стек навигации
+                              if (mounted) {
+                                navigator.pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (_) => const AuthScreen(),
+                                  ),
+                                  (route) => false, // Удаляем все предыдущие маршруты
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ],
                       flexibleSpace: FlexibleSpaceBar(
                         title: const Text(
                           'Background Editor',

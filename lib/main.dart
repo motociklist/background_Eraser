@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'screens/auth_screen.dart';
 import 'screens/background_editor_page.dart';
 import 'services/logger_service.dart';
-import 'services/storage_service.dart';
 import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
+import 'services/auth_service.dart';
 import 'config/analytics_config.dart';
 
 void main() async {
@@ -16,18 +19,21 @@ void main() async {
   logger.init();
   logger.logInfo(message: 'Application started');
 
-  // Инициализация Hive
+  // Инициализация Firebase
   try {
-    final storageService = StorageService();
-    await storageService.init();
-    logger.logInfo(message: 'Hive initialized successfully');
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    logger.logInfo(message: 'Firebase initialized successfully');
   } catch (e) {
     logger.logError(
-      message: 'Failed to initialize Hive',
+      message: 'Failed to initialize Firebase',
       error: e,
       stackTrace: null,
     );
+    // Продолжаем работу даже если Firebase не инициализирован
   }
+
 
   // Инициализация аналитики
   try {
@@ -46,6 +52,18 @@ void main() async {
   } catch (e) {
     logger.logError(
       message: 'Failed to initialize Analytics',
+      error: e,
+      stackTrace: null,
+    );
+  }
+
+  // Инициализация аутентификации
+  try {
+    AuthService.instance.init();
+    logger.logInfo(message: 'Auth service initialized');
+  } catch (e) {
+    logger.logError(
+      message: 'Failed to initialize Auth Service',
       error: e,
       stackTrace: null,
     );
@@ -150,8 +168,36 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const BackgroundEditorPage(),
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+/// Обертка для проверки авторизации
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: AuthService.instance.authStateChanges,
+      builder: (context, snapshot) {
+        // Показываем загрузку пока проверяем состояние
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Если пользователь авторизован - показываем главный экран
+        if (snapshot.hasData && snapshot.data != null) {
+          return const BackgroundEditorPage();
+        }
+
+        // Если не авторизован - показываем экран входа/регистрации
+        return const AuthScreen();
+      },
     );
   }
 }

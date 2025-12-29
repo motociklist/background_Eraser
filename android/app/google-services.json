@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1031943572326",
+    "project_id": "background-editor-248d6",
+    "storage_bucket": "background-editor-248d6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1031943572326:android:d0a8ab6a4b793375fdd6a7",
+        "android_client_info": {
+          "package_name": "com.example.mst_projectfoto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCj8nep8qsFX03-YIG7XVS5DPVCBTkSXaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

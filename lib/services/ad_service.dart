@@ -1,17 +1,10 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 // import 'package:ironsource_mediation/ironsource_mediation.dart'; // Опционально
 import 'analytics_service.dart';
 import 'logger_service.dart';
 
 /// Типы рекламы
-enum AdType {
-  banner,
-  interstitial,
-  rewarded,
-  native,
-}
+enum AdType { banner, interstitial, rewarded, native }
 
 /// Сервис для управления рекламой
 class AdService {
@@ -53,10 +46,7 @@ class AdService {
     int interstitialShowInterval = 2,
   }) async {
     if (_isInitialized) {
-      _logger.logWarning(
-        message: 'AdService already initialized',
-        context: {},
-      );
+      _logger.logWarning(message: 'AdService already initialized', context: {});
       return;
     }
 
@@ -112,10 +102,7 @@ class AdService {
   }
 
   /// Загрузка и показ баннерной рекламы
-  Future<BannerAd?> loadBannerAd({
-    AdSize? adSize,
-    AdRequest? request,
-  }) async {
+  Future<BannerAd?> loadBannerAd({AdSize? adSize, AdRequest? request}) async {
     if (!_isInitialized || _bannerAdUnitId == null) {
       _logger.logWarning(
         message: 'AdService not initialized or banner ad unit ID not set',
@@ -138,10 +125,10 @@ class AdService {
               message: 'Banner ad loaded',
               data: {'ad_unit_id': _bannerAdUnitId},
             );
-            _analytics.logEvent('ad_loaded', parameters: {
-              'ad_type': 'banner',
-              'ad_unit_id': _bannerAdUnitId,
-            });
+            _analytics.logEvent(
+              'ad_loaded',
+              parameters: {'ad_type': 'banner', 'ad_unit_id': _bannerAdUnitId},
+            );
           },
           onAdFailedToLoad: (ad, error) {
             _logger.logError(
@@ -149,25 +136,28 @@ class AdService {
               error: error,
               stackTrace: null,
             );
-            _analytics.logEvent('ad_failed', parameters: {
-              'ad_type': 'banner',
-              'ad_unit_id': _bannerAdUnitId,
-              'error_code': error.code.toString(),
-              'error_message': error.message,
-            });
+            _analytics.logEvent(
+              'ad_failed',
+              parameters: {
+                'ad_type': 'banner',
+                'ad_unit_id': _bannerAdUnitId,
+                'error_code': error.code.toString(),
+                'error_message': error.message,
+              },
+            );
             ad.dispose();
           },
           onAdOpened: (ad) {
-            _analytics.logEvent('ad_clicked', parameters: {
-              'ad_type': 'banner',
-              'ad_unit_id': _bannerAdUnitId,
-            });
+            _analytics.logEvent(
+              'ad_clicked',
+              parameters: {'ad_type': 'banner', 'ad_unit_id': _bannerAdUnitId},
+            );
           },
           onAdImpression: (ad) {
-            _analytics.logEvent('ad_shown', parameters: {
-              'ad_type': 'banner',
-              'ad_unit_id': _bannerAdUnitId,
-            });
+            _analytics.logEvent(
+              'ad_shown',
+              parameters: {'ad_type': 'banner', 'ad_unit_id': _bannerAdUnitId},
+            );
           },
         ),
       );
@@ -201,17 +191,23 @@ class AdService {
               message: 'Interstitial ad loaded',
               data: {'ad_unit_id': _interstitialAdUnitId},
             );
-            _analytics.logEvent('ad_loaded', parameters: {
-              'ad_type': 'interstitial',
-              'ad_unit_id': _interstitialAdUnitId,
-            });
+            _analytics.logEvent(
+              'ad_loaded',
+              parameters: {
+                'ad_type': 'interstitial',
+                'ad_unit_id': _interstitialAdUnitId,
+              },
+            );
 
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdShowedFullScreenContent: (ad) {
-                _analytics.logEvent('ad_shown', parameters: {
-                  'ad_type': 'interstitial',
-                  'ad_unit_id': _interstitialAdUnitId,
-                });
+                _analytics.logEvent(
+                  'ad_shown',
+                  parameters: {
+                    'ad_type': 'interstitial',
+                    'ad_unit_id': _interstitialAdUnitId,
+                  },
+                );
               },
               onAdDismissedFullScreenContent: (ad) {
                 ad.dispose();
@@ -225,21 +221,27 @@ class AdService {
                   error: error,
                   stackTrace: null,
                 );
-                _analytics.logEvent('ad_failed', parameters: {
-                  'ad_type': 'interstitial',
-                  'ad_unit_id': _interstitialAdUnitId,
-                  'error_code': error.code.toString(),
-                  'error_message': error.message,
-                });
+                _analytics.logEvent(
+                  'ad_failed',
+                  parameters: {
+                    'ad_type': 'interstitial',
+                    'ad_unit_id': _interstitialAdUnitId,
+                    'error_code': error.code.toString(),
+                    'error_message': error.message,
+                  },
+                );
                 ad.dispose();
                 _interstitialAd = null;
                 loadInterstitialAd();
               },
               onAdClicked: (ad) {
-                _analytics.logEvent('ad_clicked', parameters: {
-                  'ad_type': 'interstitial',
-                  'ad_unit_id': _interstitialAdUnitId,
-                });
+                _analytics.logEvent(
+                  'ad_clicked',
+                  parameters: {
+                    'ad_type': 'interstitial',
+                    'ad_unit_id': _interstitialAdUnitId,
+                  },
+                );
               },
             );
           },
@@ -249,12 +251,15 @@ class AdService {
               error: error,
               stackTrace: null,
             );
-            _analytics.logEvent('ad_failed', parameters: {
-              'ad_type': 'interstitial',
-              'ad_unit_id': _interstitialAdUnitId,
-              'error_code': error.code.toString(),
-              'error_message': error.message,
-            });
+            _analytics.logEvent(
+              'ad_failed',
+              parameters: {
+                'ad_type': 'interstitial',
+                'ad_unit_id': _interstitialAdUnitId,
+                'error_code': error.code.toString(),
+                'error_message': error.message,
+              },
+            );
             _interstitialAd = null;
           },
         ),
@@ -300,9 +305,7 @@ class AdService {
   }
 
   /// Загрузка rewarded рекламы
-  Future<void> loadRewardedAd({
-    Function()? onRewarded,
-  }) async {
+  Future<void> loadRewardedAd({Function()? onRewarded}) async {
     if (!_isInitialized || _rewardedAdUnitId == null) {
       return;
     }
@@ -320,17 +323,23 @@ class AdService {
               message: 'Rewarded ad loaded',
               data: {'ad_unit_id': _rewardedAdUnitId},
             );
-            _analytics.logEvent('ad_loaded', parameters: {
-              'ad_type': 'rewarded',
-              'ad_unit_id': _rewardedAdUnitId,
-            });
+            _analytics.logEvent(
+              'ad_loaded',
+              parameters: {
+                'ad_type': 'rewarded',
+                'ad_unit_id': _rewardedAdUnitId,
+              },
+            );
 
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdShowedFullScreenContent: (ad) {
-                _analytics.logEvent('ad_shown', parameters: {
-                  'ad_type': 'rewarded',
-                  'ad_unit_id': _rewardedAdUnitId,
-                });
+                _analytics.logEvent(
+                  'ad_shown',
+                  parameters: {
+                    'ad_type': 'rewarded',
+                    'ad_unit_id': _rewardedAdUnitId,
+                  },
+                );
               },
               onAdDismissedFullScreenContent: (ad) {
                 ad.dispose();
@@ -342,20 +351,26 @@ class AdService {
                   error: error,
                   stackTrace: null,
                 );
-                _analytics.logEvent('ad_failed', parameters: {
-                  'ad_type': 'rewarded',
-                  'ad_unit_id': _rewardedAdUnitId,
-                  'error_code': error.code.toString(),
-                  'error_message': error.message,
-                });
+                _analytics.logEvent(
+                  'ad_failed',
+                  parameters: {
+                    'ad_type': 'rewarded',
+                    'ad_unit_id': _rewardedAdUnitId,
+                    'error_code': error.code.toString(),
+                    'error_message': error.message,
+                  },
+                );
                 ad.dispose();
                 _rewardedAd = null;
               },
               onAdClicked: (ad) {
-                _analytics.logEvent('ad_clicked', parameters: {
-                  'ad_type': 'rewarded',
-                  'ad_unit_id': _rewardedAdUnitId,
-                });
+                _analytics.logEvent(
+                  'ad_clicked',
+                  parameters: {
+                    'ad_type': 'rewarded',
+                    'ad_unit_id': _rewardedAdUnitId,
+                  },
+                );
               },
             );
           },
@@ -365,12 +380,15 @@ class AdService {
               error: error,
               stackTrace: null,
             );
-            _analytics.logEvent('ad_failed', parameters: {
-              'ad_type': 'rewarded',
-              'ad_unit_id': _rewardedAdUnitId,
-              'error_code': error.code.toString(),
-              'error_message': error.message,
-            });
+            _analytics.logEvent(
+              'ad_failed',
+              parameters: {
+                'ad_type': 'rewarded',
+                'ad_unit_id': _rewardedAdUnitId,
+                'error_code': error.code.toString(),
+                'error_message': error.message,
+              },
+            );
             _rewardedAd = null;
           },
         ),
@@ -394,12 +412,15 @@ class AdService {
     try {
       await _rewardedAd!.show(
         onUserEarnedReward: (ad, reward) {
-          _analytics.logEvent('ad_rewarded', parameters: {
-            'ad_type': 'rewarded',
-            'ad_unit_id': _rewardedAdUnitId,
-            'reward_type': reward.type,
-            'reward_amount': reward.amount.toString(),
-          });
+          _analytics.logEvent(
+            'ad_rewarded',
+            parameters: {
+              'ad_type': 'rewarded',
+              'ad_unit_id': _rewardedAdUnitId,
+              'reward_type': reward.type,
+              'reward_amount': reward.amount.toString(),
+            },
+          );
 
           if (_onRewardedAdCompleted != null) {
             _onRewardedAdCompleted!();
@@ -425,4 +446,3 @@ class AdService {
     _rewardedAd = null;
   }
 }
-
