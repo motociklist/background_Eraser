@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'screens/background_editor_page.dart';
 import 'services/logger_service.dart';
 import 'services/storage_service.dart';
+import 'services/analytics_service.dart';
+import 'services/ad_service.dart';
+import 'config/analytics_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +24,62 @@ void main() async {
   } catch (e) {
     logger.logError(
       message: 'Failed to initialize Hive',
+      error: e,
+      stackTrace: null,
+    );
+  }
+
+  // Инициализация аналитики
+  try {
+    await AnalyticsService.instance.init(
+      appMetricaApiKey: AnalyticsConfig.appMetricaApiKey != 'YOUR_APPMETRICA_API_KEY'
+          ? AnalyticsConfig.appMetricaApiKey
+          : null,
+      appsFlyerDevKey: AnalyticsConfig.appsFlyerDevKey,
+      appsFlyerAppId: AnalyticsConfig.appsFlyerAppId,
+      enableFirebase: AnalyticsConfig.enableFirebase,
+    );
+    logger.logInfo(message: 'Analytics initialized');
+
+    // Логируем запуск приложения
+    await AnalyticsService.instance.logEvent('app_launched');
+  } catch (e) {
+    logger.logError(
+      message: 'Failed to initialize Analytics',
+      error: e,
+      stackTrace: null,
+    );
+  }
+
+  // Инициализация рекламы
+  try {
+    // Определяем Ad Unit IDs в зависимости от платформы
+    String? bannerAdUnitId;
+    String? interstitialAdUnitId;
+    String? rewardedAdUnitId;
+
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        bannerAdUnitId = AnalyticsConfig.androidBannerAdUnitId;
+        interstitialAdUnitId = AnalyticsConfig.androidInterstitialAdUnitId;
+        rewardedAdUnitId = AnalyticsConfig.androidRewardedAdUnitId;
+      } else if (Platform.isIOS) {
+        bannerAdUnitId = AnalyticsConfig.iosBannerAdUnitId;
+        interstitialAdUnitId = AnalyticsConfig.iosInterstitialAdUnitId;
+        rewardedAdUnitId = AnalyticsConfig.iosRewardedAdUnitId;
+      }
+    }
+
+    await AdService.instance.init(
+      bannerAdUnitId: bannerAdUnitId,
+      interstitialAdUnitId: interstitialAdUnitId,
+      rewardedAdUnitId: rewardedAdUnitId,
+      interstitialShowInterval: AnalyticsConfig.interstitialShowInterval,
+    );
+    logger.logInfo(message: 'Ad service initialized');
+  } catch (e) {
+    logger.logError(
+      message: 'Failed to initialize Ad Service',
       error: e,
       stackTrace: null,
     );

@@ -15,9 +15,13 @@ class BackgroundService {
   static const String clipdropApiUrl =
       'https://clipdrop-api.co/remove-background/v1';
 
+  // Freepik API
+  static const String freepikApiUrl = 'https://api.freepik.com/v1/images/remove-background';
+  static const String freepikApiKey = 'FPSXab123d30b5ec1bf4df56b2c181809f5b';
+
   // API ключ - пользователь должен указать свой
   String? apiKey;
-  String apiProvider = 'removebg'; // 'removebg', 'photoroom', 'clipdrop'
+  String apiProvider = 'removebg'; // 'removebg', 'photoroom', 'clipdrop', 'freepik'
   final LoggerService _logger = LoggerService();
 
   // Параметры retry
@@ -203,6 +207,9 @@ class BackgroundService {
           break;
         case 'clipdrop':
           result = await _removeBackgroundClipdropFromBytes(imageBytes);
+          break;
+        case 'freepik':
+          result = await _removeBackgroundFreepikFromBytes(imageBytes);
           break;
         default:
           result = await _removeBackgroundRemoveBgFromBytes(imageBytes);
@@ -513,6 +520,71 @@ class BackgroundService {
       stopwatch.stop();
       _logger.logError(
         message: 'Clipdrop API request failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  /// Freepik API (из байтов) - поддерживает веб
+  Future<Uint8List?> _removeBackgroundFreepikFromBytes(
+    Uint8List imageBytes,
+  ) async {
+    final stopwatch = Stopwatch()..start();
+
+    _logger.logApiRequest(
+      provider: 'Freepik',
+      endpoint: freepikApiUrl,
+      headers: {'X-Freepik-Api-Key': '***'},
+      imageSize: imageBytes.length,
+    );
+
+    try {
+      // Создаем функцию запроса для retry
+      Future<http.StreamedResponse> makeRequest() async {
+        var request = http.MultipartRequest('POST', Uri.parse(freepikApiUrl));
+        request.headers.addAll({'X-Freepik-Api-Key': freepikApiKey});
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            imageBytes,
+            filename: 'image.jpg',
+          ),
+        );
+        return request.send();
+      }
+
+      // Выполняем запрос с retry
+      var response = await _executeWithRetry(makeRequest, 'Freepik');
+      stopwatch.stop();
+
+      if (response.statusCode == 200) {
+        var responseBytes = await response.stream.toBytes();
+        _logger.logApiSuccess(
+          provider: 'Freepik',
+          statusCode: response.statusCode,
+          responseSize: responseBytes.length,
+          duration: stopwatch.elapsed,
+        );
+        return responseBytes;
+      } else {
+        var errorBody = await response.stream.bytesToString();
+        _logger.logApiError(
+          provider: 'Freepik',
+          statusCode: response.statusCode,
+          error: 'API request failed',
+          errorBody: errorBody,
+          duration: stopwatch.elapsed,
+        );
+        throw Exception(
+          'Freepik API error: ${response.statusCode} - $errorBody',
+        );
+      }
+    } catch (e, stackTrace) {
+      stopwatch.stop();
+      _logger.logError(
+        message: 'Freepik API request failed',
         error: e,
         stackTrace: stackTrace,
       );
