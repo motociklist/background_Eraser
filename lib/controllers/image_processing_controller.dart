@@ -5,6 +5,7 @@ import '../models/app_state.dart';
 import '../services/background_service.dart';
 import '../services/logger_service.dart';
 import '../services/storage_service.dart';
+import '../services/analytics_service.dart';
 
 /// Контроллер для управления обработкой изображений
 class ImageProcessingController extends ChangeNotifier {
@@ -129,6 +130,18 @@ class ImageProcessingController extends ChangeNotifier {
           action: 'Image selected',
           state: {'size': bytes.length},
         );
+
+        // Аналитика: изображение выбрано
+        await AnalyticsService.instance.logEvent(
+          'image_picked',
+          parameters: {
+            'source': source == ImageSource.camera ? 'camera' : 'gallery',
+            'image_size': bytes.length,
+          },
+        );
+      } else {
+        // Аналитика: отмена выбора изображения
+        await AnalyticsService.instance.logEvent('image_pick_cancelled');
       }
     } catch (e, stackTrace) {
       _logger.logError(
@@ -138,6 +151,12 @@ class ImageProcessingController extends ChangeNotifier {
       );
       _state = _state.copyWith(errorMessage: 'Ошибка выбора изображения: $e');
       notifyListeners();
+
+      // Аналитика: ошибка выбора изображения
+      await AnalyticsService.instance.logError(
+        errorName: 'image_pick_error',
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -152,8 +171,9 @@ class ImageProcessingController extends ChangeNotifier {
     }
 
     // Проверяем API ключ напрямую из контроллера
+    // Для Freepik не требуем ключ от пользователя
     final apiKey = apiKeyController.text.trim();
-    if (apiKey.isEmpty) {
+    if (apiKey.isEmpty && _state.selectedProvider != 'freepik') {
       _state = _state.copyWith(errorMessage: 'Пожалуйста, введите API ключ');
       notifyListeners();
       return;
@@ -166,6 +186,13 @@ class ImageProcessingController extends ChangeNotifier {
     );
     notifyListeners();
 
+    // Аналитика: начало удаления фона
+    await AnalyticsService.instance.logImageProcessingStarted(
+      operation: 'background_removal',
+      provider: _state.selectedProvider,
+      imageSize: _state.selectedImageBytes!.length,
+    );
+
     // Логирование откладываем, чтобы не блокировать UI
     Future.microtask(() {
       _logger.logAppState(
@@ -177,14 +204,23 @@ class ImageProcessingController extends ChangeNotifier {
       );
     });
 
+    final stopwatch = Stopwatch()..start();
+
     try {
       // Используем API ключ из контроллера
-      _backgroundService.apiKey = apiKey;
+      // Для Freepik используем встроенный ключ, не требуем от пользователя
+      if (_state.selectedProvider == 'freepik') {
+        _backgroundService.apiKey = null; // Freepik использует встроенный ключ
+      } else {
+        _backgroundService.apiKey = apiKey;
+      }
       _backgroundService.apiProvider = _state.selectedProvider;
 
       final result = await _backgroundService.removeBackgroundFromBytes(
         _state.selectedImageBytes!,
       );
+
+      stopwatch.stop();
 
       if (result != null) {
         // Устанавливаем результат и завершаем обработку одновременно
@@ -194,6 +230,15 @@ class ImageProcessingController extends ChangeNotifier {
           errorMessage: null, // Явно очищаем ошибку при успехе
         );
         notifyListeners();
+
+        // Аналитика: успешное удаление фона
+        await AnalyticsService.instance.logImageProcessingCompleted(
+          operation: 'background_removal',
+          provider: _state.selectedProvider,
+          durationMs: stopwatch.elapsedMilliseconds,
+          resultSize: result.length,
+        );
+
         // Логирование после обновления UI
         Future.microtask(() {
           _logger.logAppState(
@@ -202,11 +247,21 @@ class ImageProcessingController extends ChangeNotifier {
           );
         });
       } else {
+        stopwatch.stop();
+
         _state = _state.copyWith(
           errorMessage: 'Не удалось обработать изображение',
           isProcessing: false,
         );
         notifyListeners();
+
+        // Аналитика: ошибка удаления фона
+        await AnalyticsService.instance.logImageProcessingFailed(
+          operation: 'background_removal',
+          provider: _state.selectedProvider,
+          errorMessage: 'Result is null',
+        );
+
         // Логирование после обновления UI
         Future.microtask(() {
           _logger.logWarning(
@@ -216,11 +271,20 @@ class ImageProcessingController extends ChangeNotifier {
         });
       }
     } catch (e, stackTrace) {
+      stopwatch.stop();
       _state = _state.copyWith(
         errorMessage: _formatErrorMessage(e.toString()),
         isProcessing: false,
       );
       notifyListeners();
+
+      // Аналитика: ошибка удаления фона
+      await AnalyticsService.instance.logImageProcessingFailed(
+        operation: 'background_removal',
+        provider: _state.selectedProvider,
+        errorMessage: e.toString(),
+      );
+
       // Логирование после обновления UI
       Future.microtask(() {
         _logger.logError(
@@ -243,8 +307,9 @@ class ImageProcessingController extends ChangeNotifier {
     }
 
     // Проверяем API ключ напрямую из контроллера
+    // Для Freepik не требуем ключ от пользователя
     final apiKey = apiKeyController.text.trim();
-    if (apiKey.isEmpty) {
+    if (apiKey.isEmpty && _state.selectedProvider != 'freepik') {
       _state = _state.copyWith(errorMessage: 'Пожалуйста, введите API ключ');
       notifyListeners();
       return;
@@ -257,9 +322,24 @@ class ImageProcessingController extends ChangeNotifier {
     );
     notifyListeners();
 
+    // Аналитика: начало размытия фона
+    await AnalyticsService.instance.logImageProcessingStarted(
+      operation: 'background_blur',
+      provider: _state.selectedProvider,
+      imageSize: _state.selectedImageBytes!.length,
+      blurRadius: _state.blurRadius,
+    );
+
+    final stopwatch = Stopwatch()..start();
+
     try {
       // Используем API ключ из контроллера
-      _backgroundService.apiKey = apiKey;
+      // Для Freepik используем встроенный ключ, не требуем от пользователя
+      if (_state.selectedProvider == 'freepik') {
+        _backgroundService.apiKey = null; // Freepik использует встроенный ключ
+      } else {
+        _backgroundService.apiKey = apiKey;
+      }
       _backgroundService.apiProvider = _state.selectedProvider;
 
       // Вызываем размытие напрямую, без промежуточного показа изображения без фона
@@ -267,6 +347,8 @@ class ImageProcessingController extends ChangeNotifier {
         _state.selectedImageBytes!,
         blurRadius: _state.blurRadius,
       );
+
+      stopwatch.stop();
 
       if (result != null) {
         // Устанавливаем результат и завершаем обработку одновременно
@@ -276,6 +358,16 @@ class ImageProcessingController extends ChangeNotifier {
           errorMessage: null, // Явно очищаем ошибку при успехе
         );
         notifyListeners();
+
+        // Аналитика: успешное размытие фона
+        await AnalyticsService.instance.logImageProcessingCompleted(
+          operation: 'background_blur',
+          provider: _state.selectedProvider,
+          durationMs: stopwatch.elapsedMilliseconds,
+          resultSize: result.length,
+          blurRadius: _state.blurRadius,
+        );
+
         // Логирование после обновления UI
         Future.microtask(() {
           _logger.logAppState(
@@ -284,11 +376,22 @@ class ImageProcessingController extends ChangeNotifier {
           );
         });
       } else {
+        stopwatch.stop();
+
         _state = _state.copyWith(
           errorMessage: 'Не удалось размыть фон',
           isProcessing: false,
         );
         notifyListeners();
+
+        // Аналитика: ошибка размытия фона
+        await AnalyticsService.instance.logImageProcessingFailed(
+          operation: 'background_blur',
+          provider: _state.selectedProvider,
+          errorMessage: 'Result is null',
+          blurRadius: _state.blurRadius,
+        );
+
         // Логирование после обновления UI
         Future.microtask(() {
           _logger.logWarning(
@@ -301,11 +404,21 @@ class ImageProcessingController extends ChangeNotifier {
         });
       }
     } catch (e, stackTrace) {
+      stopwatch.stop();
       _state = _state.copyWith(
         errorMessage: _formatErrorMessage(e.toString()),
         isProcessing: false,
       );
       notifyListeners();
+
+      // Аналитика: ошибка размытия фона
+      await AnalyticsService.instance.logImageProcessingFailed(
+        operation: 'background_blur',
+        provider: _state.selectedProvider,
+        errorMessage: e.toString(),
+        blurRadius: _state.blurRadius,
+      );
+
       // Логирование после обновления UI
       Future.microtask(() {
         _logger.logError(
@@ -322,6 +435,12 @@ class ImageProcessingController extends ChangeNotifier {
     _state = _state.copyWith(selectedProvider: provider);
     _storageService.saveProvider(provider);
     notifyListeners();
+
+    // Аналитика: изменение провайдера
+    AnalyticsService.instance.logEvent(
+      'provider_changed',
+      parameters: {'provider': provider},
+    );
   }
 
   /// Обновление радиуса размытия
@@ -329,6 +448,12 @@ class ImageProcessingController extends ChangeNotifier {
     _state = _state.copyWith(blurRadius: radius);
     _storageService.saveBlurRadius(radius);
     notifyListeners();
+
+    // Аналитика: изменение радиуса размытия
+    AnalyticsService.instance.logEvent(
+      'blur_radius_changed',
+      parameters: {'blur_radius': radius},
+    );
   }
 
   String _formatErrorMessage(String errorStr) {

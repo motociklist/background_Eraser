@@ -15,6 +15,9 @@ import '../widgets/loading_indicator.dart';
 import '../utils/web_download_stub.dart'
     if (dart.library.html) '../utils/web_download.dart';
 import '../services/logger_service.dart';
+import '../services/analytics_service.dart';
+import '../services/ad_service.dart';
+import '../widgets/banner_ad_widget.dart';
 
 /// Главный экран приложения для обработки изображений
 class BackgroundEditorPage extends StatefulWidget {
@@ -41,6 +44,12 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
         setState(() {});
       }
     });
+
+    // Аналитика: просмотр экрана
+    AnalyticsService.instance.logScreenView('background_editor');
+
+    // Загружаем interstitial рекламу
+    AdService.instance.loadInterstitialAd();
   }
 
   void _onStateChanged() {
@@ -63,6 +72,18 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filename = 'processed_image_$timestamp.png';
         downloadFileWeb(_controller.state.processedImage!, filename);
+
+        // Аналитика: изображение сохранено (веб)
+        await AnalyticsService.instance.logEvent(
+          'image_saved',
+          parameters: {
+            'file_size': _controller.state.processedImage!.length,
+            'platform': 'web',
+          },
+        );
+
+        // Показываем interstitial рекламу после сохранения (если нужно)
+        await AdService.instance.showInterstitialAdIfNeeded();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -156,6 +177,22 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
           success: true,
         );
 
+        // Аналитика: изображение сохранено
+        await AnalyticsService.instance.logEvent(
+          'image_saved',
+          parameters: {
+            'file_size': _controller.state.processedImage!.length,
+            'platform': Platform.isAndroid
+                ? 'android'
+                : Platform.isIOS
+                    ? 'ios'
+                    : 'other',
+          },
+        );
+
+        // Показываем interstitial рекламу после сохранения (если нужно)
+        await AdService.instance.showInterstitialAdIfNeeded();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -176,6 +213,12 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
         message: 'Error saving image',
         error: e,
         stackTrace: stackTrace,
+      );
+
+      // Аналитика: ошибка сохранения
+      await AnalyticsService.instance.logEvent(
+        'image_save_failed',
+        parameters: {'error_message': e.toString()},
       );
 
       if (mounted) {
@@ -493,6 +536,10 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                           ),
                         ),
                       ),
+                    ),
+                    // Banner Ad внизу экрана
+                    const SliverToBoxAdapter(
+                      child: BannerAdWidget(),
                     ),
                   ],
                 ),
