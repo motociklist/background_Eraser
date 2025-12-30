@@ -54,6 +54,9 @@ dependencies:
   appsflyer_sdk: ^6.17.7+1
   # ironsource_mediation: ^8.4.0  # Опционально, установите вручную при необходимости
 
+  # Subscriptions
+  apphud: ^3.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

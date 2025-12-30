@@ -9,7 +9,9 @@ import 'services/logger_service.dart';
 import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
 import 'services/auth_service.dart';
+import 'services/apphud_service.dart';
 import 'config/analytics_config.dart';
+import 'config/api_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +66,21 @@ void main() async {
   } catch (e) {
     logger.logError(
       message: 'Failed to initialize Auth Service',
+      error: e,
+      stackTrace: null,
+    );
+  }
+
+  // Инициализация AppHud (подписки)
+  try {
+    await AppHudService.instance.init(
+      apiKey: ApiConfig.appHudApiKey,
+      enableAttribution: true,
+    );
+    logger.logInfo(message: 'AppHud service initialized');
+  } catch (e) {
+    logger.logError(
+      message: 'Failed to initialize AppHud Service',
       error: e,
       stackTrace: null,
     );
