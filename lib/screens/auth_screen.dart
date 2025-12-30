@@ -84,6 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       final localizations = AppLocalizations.of(context)!;
       setState(() {
         _errorMessage = localizations.errorOccurred(e.toString());

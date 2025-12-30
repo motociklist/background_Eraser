@@ -93,6 +93,9 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
         }
       } else {
         // Для мобильных платформ
+        if (!mounted) return;
+        final localizations = AppLocalizations.of(context)!;
+
         Directory? directory;
         String saveMessage = '';
 
@@ -101,6 +104,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
           try {
             // Получаем внешнее хранилище
             final externalDir = await getExternalStorageDirectory();
+            if (!mounted) return;
             if (externalDir != null) {
               // Строим путь к папке Downloads
               // externalDir обычно: /storage/emulated/0/Android/data/.../files
@@ -127,14 +131,15 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                 await directory.create(recursive: true);
               }
 
-              saveMessage = AppLocalizations.of(context)!.imageSavedToDownloads;
+              saveMessage = localizations.imageSavedToDownloads;
             } else {
-              throw Exception(AppLocalizations.of(context)!.storageAccessDenied);
+              throw Exception(localizations.storageAccessDenied);
             }
           } catch (e) {
             // Fallback: используем папку Pictures
             try {
               final externalDir = await getExternalStorageDirectory();
+              if (!mounted) return;
               if (externalDir != null) {
                 final picturesPath = path.join(
                   externalDir.path.split('/Android/')[0],
@@ -145,24 +150,27 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                 if (!await directory.exists()) {
                   await directory.create(recursive: true);
                 }
-                saveMessage = AppLocalizations.of(context)!.imageSavedToImages;
+                saveMessage = localizations.imageSavedToImages;
               } else {
-                throw Exception(AppLocalizations.of(context)!.accessDenied);
+                throw Exception(localizations.accessDenied);
               }
             } catch (_) {
               // Последний fallback: внутреннее хранилище
               directory = await getApplicationDocumentsDirectory();
-              saveMessage = AppLocalizations.of(context)!.imageSavedToInternal;
+              if (!mounted) return;
+              saveMessage = localizations.imageSavedToInternal;
             }
           }
         } else if (Platform.isIOS) {
           // Для iOS используем папку документов
           directory = await getApplicationDocumentsDirectory();
-          saveMessage = AppLocalizations.of(context)!.imageSavedToGallery;
+          if (!mounted) return;
+          saveMessage = localizations.imageSavedToGallery;
         } else {
           // Для других платформ
           directory = await getApplicationDocumentsDirectory();
-          saveMessage = AppLocalizations.of(context)!.imageSaved;
+          if (!mounted) return;
+          saveMessage = localizations.imageSaved;
         }
 
         final timestamp = DateTime.now().millisecondsSinceEpoch;

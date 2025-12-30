@@ -474,7 +474,7 @@ class _LanguageSelector extends StatelessWidget {
     }
 
     // Функция для переключения языка
-    Future<void> _changeLanguage(Locale newLocale) async {
+    Future<void> changeLanguage(Locale newLocale) async {
       // Сохраняем выбранный язык (в Firestore и локально)
       await LocaleService.instance.setLocale(newLocale);
 
@@ -485,6 +485,7 @@ class _LanguageSelector extends StatelessWidget {
       );
 
       // Обновляем язык через LocaleProvider (обновит весь интерфейс)
+      if (!context.mounted) return;
       final localeProvider = LocaleProvider.of(context);
       if (localeProvider != null) {
         localeProvider.onLocaleChanged(newLocale);
@@ -522,7 +523,7 @@ class _LanguageSelector extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: InkWell(
-                onTap: () => _changeLanguage(locale),
+                onTap: () => changeLanguage(locale),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
