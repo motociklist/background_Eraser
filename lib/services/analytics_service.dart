@@ -1,8 +1,9 @@
-// import 'package:appmetrica_flutter/appmetrica_flutter.dart'; // Установите: flutter pub add appmetrica_flutter
+import 'package:appmetrica_plugin/appmetrica_plugin.dart';
 import 'package:appsflyer_sdk/appsflyer_sdk.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'logger_service.dart';
+import 'apphud_service.dart';
 
 /// Унифицированный сервис для работы с аналитикой
 /// Поддерживает AppMetrica, AppsFlyer и Firebase Analytics
@@ -82,17 +83,16 @@ class AnalyticsService {
   /// Инициализация AppMetrica
   Future<void> _initAppMetrica(String apiKey) async {
     try {
-      // Раскомментируйте после установки пакета appmetrica_flutter
-      // await AppMetrica.activate(
-      //   AppMetricaConfig(
-      //     apiKey,
-      //     sessionTimeout: 10,
-      //     firstActivationAsUpdate: false,
-      //   ),
-      // );
+      await AppMetrica.activate(
+        AppMetricaConfig(
+          apiKey,
+          sessionTimeout: 10,
+          firstActivationAsUpdate: false,
+        ),
+      );
 
       _logger.logInfo(
-        message: 'AppMetrica initialization skipped (package not installed)',
+        message: 'AppMetrica initialized successfully',
         data: {'api_key': '***'},
       );
     } catch (e, stackTrace) {
@@ -115,11 +115,31 @@ class AnalyticsService {
       );
 
       _appsflyerSdk = AppsflyerSdk(options);
+
       await _appsflyerSdk!.initSdk(
         registerConversionDataCallback: true,
         registerOnAppOpenAttributionCallback: true,
         registerOnDeepLinkingCallback: true,
       );
+
+      // Настройка callback для conversion data (для передачи в AppHud)
+      // Callback регистрируется через initSdk, но можно получить данные через метод
+      try {
+        // Используем динамический вызов для совместимости с разными версиями SDK
+        (_appsflyerSdk as dynamic).onConversionData((data) {
+          _handleAppsFlyerConversionData(data);
+        });
+
+        // Настройка callback для deep linking
+        (_appsflyerSdk as dynamic).onAppOpenAttribution((data) {
+          _handleAppsFlyerDeepLink(data);
+        });
+      } catch (e) {
+        _logger.logWarning(
+          message: 'AppsFlyer callbacks may not be available in this SDK version',
+          context: {'error': e.toString()},
+        );
+      }
 
       _logger.logInfo(
         message: 'AppsFlyer initialized',
@@ -128,6 +148,74 @@ class AnalyticsService {
     } catch (e, stackTrace) {
       _logger.logError(
         message: 'Failed to initialize AppsFlyer',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// Обработка данных конверсии AppsFlyer
+  /// Передает данные в AppHud для атрибуции
+  void _handleAppsFlyerConversionData(Map<dynamic, dynamic> data) {
+    try {
+      _logger.logInfo(
+        message: 'AppsFlyer conversion data received',
+        data: {
+          'is_first_launch': data['is_first_launch']?.toString(),
+          'media_source': data['media_source']?.toString(),
+          'campaign': data['campaign']?.toString(),
+        },
+      );
+
+      // Передаем данные в AppHud для атрибуции
+      // AppHud SDK автоматически получает данные через нативную интеграцию
+      // Но можно передать вручную через setUserProperty
+      final appHudService = AppHudService.instance;
+
+      // Передаем ключевые параметры атрибуции
+      if (data['media_source'] != null) {
+        appHudService.setUserProperty('appsflyer_media_source', data['media_source'].toString());
+      }
+      if (data['campaign'] != null) {
+        appHudService.setUserProperty('appsflyer_campaign', data['campaign'].toString());
+      }
+      if (data['af_status'] != null) {
+        appHudService.setUserProperty('appsflyer_status', data['af_status'].toString());
+      }
+
+      // Логируем событие
+      logEvent('appsflyer_conversion_data', parameters: {
+        'is_first_launch': data['is_first_launch']?.toString() ?? 'unknown',
+        'media_source': data['media_source']?.toString() ?? 'unknown',
+        'campaign': data['campaign']?.toString() ?? 'unknown',
+      });
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Failed to handle AppsFlyer conversion data',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// Обработка deep link данных AppsFlyer
+  void _handleAppsFlyerDeepLink(Map<dynamic, dynamic> data) {
+    try {
+      _logger.logInfo(
+        message: 'AppsFlyer deep link received',
+        data: {
+          'deep_link_value': data['deep_link_value']?.toString(),
+          'campaign': data['campaign']?.toString(),
+        },
+      );
+
+      logEvent('appsflyer_deep_link', parameters: {
+        'deep_link_value': data['deep_link_value']?.toString() ?? 'unknown',
+        'campaign': data['campaign']?.toString() ?? 'unknown',
+      });
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Failed to handle AppsFlyer deep link',
         error: e,
         stackTrace: stackTrace,
       );
@@ -166,15 +254,16 @@ class AnalyticsService {
     }
 
     try {
-      // AppMetrica (раскомментируйте после установки пакета)
-      // try {
-      //   await AppMetrica.reportEventWithMap(eventName, parameters ?? {});
-      // } catch (e) {
-      //   _logger.logWarning(
-      //     message: 'Failed to log event to AppMetrica',
-      //     context: {'event_name': eventName, 'error': e.toString()},
-      //   );
-      // }
+      // AppMetrica
+      try {
+        final params = parameters?.map((key, value) => MapEntry(key, value as Object)) ?? <String, Object>{};
+        await AppMetrica.reportEventWithMap(eventName, params);
+      } catch (e) {
+        _logger.logWarning(
+          message: 'Failed to log event to AppMetrica',
+          context: {'event_name': eventName, 'error': e.toString()},
+        );
+      }
 
       // AppsFlyer
       try {
@@ -256,12 +345,12 @@ class AnalyticsService {
         await _firebaseAnalytics!.setUserProperty(name: name, value: value);
       }
 
-      // AppMetrica (раскомментируйте после установки пакета)
-      // try {
-      //   await AppMetrica.setUserProfileID(value ?? '');
-      // } catch (e) {
-      //   // Игнорируем ошибки
-      // }
+      // AppMetrica
+      try {
+        await AppMetrica.setUserProfileID(value ?? '');
+      } catch (e) {
+        // Игнорируем ошибки
+      }
     } catch (e) {
       _logger.logWarning(
         message: 'Failed to set user property',

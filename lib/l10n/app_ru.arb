@@ -1,0 +1,15 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Удаление фона",
+  "editor": "Редактор",
+  "profile": "Профиль",
+  "selectImage": "Выбрать изображение",
+  "removeBackground": "Удалить фон",
+  "blurBackground": "Размыть фон",
+  "saveImage": "Сохранить изображение",
+  "apiProvider": "API Провайдер",
+  "blurRadius": "Радиус размытия",
+  "processing": "Обработка...",
+  "error": "Ошибка"
+}
+

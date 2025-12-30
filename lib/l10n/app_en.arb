@@ -1,0 +1,48 @@
+{
+  "@@locale": "en",
+  "appTitle": "Background Eraser",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "editor": "Editor",
+  "@editor": {
+    "description": "Editor tab label"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile tab label"
+  },
+  "selectImage": "Select Image",
+  "@selectImage": {
+    "description": "Button to select an image"
+  },
+  "removeBackground": "Remove Background",
+  "@removeBackground": {
+    "description": "Button to remove background"
+  },
+  "blurBackground": "Blur Background",
+  "@blurBackground": {
+    "description": "Button to blur background"
+  },
+  "saveImage": "Save Image",
+  "@saveImage": {
+    "description": "Button to save image"
+  },
+  "apiProvider": "API Provider",
+  "@apiProvider": {
+    "description": "Label for API provider selector"
+  },
+  "blurRadius": "Blur Radius",
+  "@blurRadius": {
+    "description": "Label for blur radius slider"
+  },
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Processing message"
+  },
+  "error": "Error",
+  "@error": {
+    "description": "Error label"
+  }
+}
+

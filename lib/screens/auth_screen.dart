@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
-import 'background_editor_page.dart';
 
 /// Экран аутентификации (регистрация/вход)
 class AuthScreen extends StatefulWidget {
@@ -28,18 +27,11 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-    // Проверяем, авторизован ли пользователь
-    _authService.authStateChanges.listen((User? user) {
-      if (user != null && mounted) {
-        // Пользователь авторизован, переходим на главный экран
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const BackgroundEditorPage()),
-        );
-      }
-    });
-
     // Аналитика: просмотр экрана аутентификации
     AnalyticsService.instance.logScreenView('auth_screen');
+
+    // Навигация обрабатывается через AuthWrapper в main.dart
+    // Не нужно дублировать логику здесь
   }
 
   @override

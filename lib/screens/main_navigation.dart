@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mst_projectfoto/l10n/app_localizations.dart';
 import 'background_editor_page.dart';
 import 'profile_page.dart';
 import '../services/analytics_service.dart';
@@ -46,12 +47,10 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -78,16 +77,16 @@ class _MainNavigationState extends State<MainNavigation> {
             fontSize: 12,
           ),
           elevation: 8,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.photo_library),
-              activeIcon: Icon(Icons.photo_library),
-              label: 'Редактор',
+              icon: const Icon(Icons.photo_library),
+              activeIcon: const Icon(Icons.photo_library),
+              label: l10n.editor,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Профиль',
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: l10n.profile,
             ),
           ],
         ),
@@ -95,4 +94,3 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 }
-

@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:mst_projectfoto/l10n/app_localizations.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_navigation.dart';
 import 'services/logger_service.dart';
@@ -10,6 +12,7 @@ import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
 import 'services/auth_service.dart';
 import 'services/apphud_service.dart';
+import 'services/att_service.dart';
 import 'config/analytics_config.dart';
 import 'config/api_config.dart';
 
@@ -36,6 +39,21 @@ void main() async {
     // Продолжаем работу даже если Firebase не инициализирован
   }
 
+
+  // Инициализация ATT (App Tracking Transparency) для iOS
+  try {
+    await AttService.instance.init();
+    logger.logInfo(message: 'ATT service initialized');
+
+    // Запрашиваем разрешение на трекинг (можно вызвать позже, например, после onboarding)
+    // await AttService.instance.requestTrackingPermission();
+  } catch (e) {
+    logger.logError(
+      message: 'Failed to initialize ATT Service',
+      error: e,
+      stackTrace: null,
+    );
+  }
 
   // Инициализация аналитики
   try {
@@ -130,6 +148,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Background Eraser / Blur',
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''), // English
+        Locale('ru', ''), // Russian
+      ],
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
