@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 /// Виджет для ввода API ключа
 class ApiKeyInput extends StatelessWidget {
@@ -16,7 +17,7 @@ class ApiKeyInput extends StatelessWidget {
       controller: controller,
       decoration: InputDecoration(
         labelText: 'API Key',
-        hintText: 'Введите ваш API ключ',
+        hintText: AppLocalizations.of(context)!.selectProvider,
         prefixIcon: Icon(Icons.key, color: theme.colorScheme.primary),
         suffixIcon: controller.text.isNotEmpty
             ? Icon(Icons.check_circle,

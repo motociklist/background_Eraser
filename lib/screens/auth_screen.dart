@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
-import 'background_editor_page.dart';
+import '../l10n/app_localizations.dart';
 
 /// Экран аутентификации (регистрация/вход)
 class AuthScreen extends StatefulWidget {
@@ -28,18 +28,11 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-    // Проверяем, авторизован ли пользователь
-    _authService.authStateChanges.listen((User? user) {
-      if (user != null && mounted) {
-        // Пользователь авторизован, переходим на главный экран
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const BackgroundEditorPage()),
-        );
-      }
-    });
-
     // Аналитика: просмотр экрана аутентификации
     AnalyticsService.instance.logScreenView('auth_screen');
+
+    // Навигация обрабатывается через AuthWrapper в main.dart
+    // Не нужно дублировать логику здесь
   }
 
   @override
@@ -70,9 +63,10 @@ class _AuthScreenState extends State<AuthScreen> {
         // Навигация произойдет автоматически через authStateChanges
       } else {
         // Регистрация
+        final localizations = AppLocalizations.of(context)!;
         if (_passwordController.text != _confirmPasswordController.text) {
           setState(() {
-            _errorMessage = 'Пароли не совпадают';
+            _errorMessage = localizations.passwordsDoNotMatch;
             _isLoading = false;
           });
           return;
@@ -90,8 +84,9 @@ class _AuthScreenState extends State<AuthScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      final localizations = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Произошла ошибка: $e';
+        _errorMessage = localizations.errorOccurred(e.toString());
         _isLoading = false;
       });
     }
@@ -170,7 +165,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(height: 24),
                               // Заголовок
                               Text(
-                                _isLogin ? 'Добро пожаловать!' : 'Создайте аккаунт',
+                                _isLogin ? AppLocalizations.of(context)!.welcome : AppLocalizations.of(context)!.createAccount,
                                 style: theme.textTheme.headlineLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: colorScheme.primary,
@@ -180,8 +175,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 _isLogin
-                                    ? 'Войдите в свой аккаунт'
-                                    : 'Зарегистрируйтесь для начала работы',
+                                    ? AppLocalizations.of(context)!.signInToAccount
+                                    : AppLocalizations.of(context)!.registerToStart,
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   color: Colors.grey.shade600,
                                 ),
@@ -208,7 +203,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
-                                    labelText: 'Email',
+                                    labelText: AppLocalizations.of(context)!.email,
                                     hintText: 'example@email.com',
                                     prefixIcon: Icon(
                                       Icons.email_outlined,
@@ -216,11 +211,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ),
                                   ),
                                   validator: (value) {
+                                    final l10n = AppLocalizations.of(context)!;
                                     if (value == null || value.isEmpty) {
-                                      return 'Введите email';
+                                      return l10n.enterEmail;
                                     }
                                     if (!value.contains('@') || !value.contains('.')) {
-                                      return 'Введите корректный email';
+                                      return l10n.enterValidEmail;
                                     }
                                     return null;
                                   },
@@ -235,8 +231,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                       ? TextInputAction.done
                                       : TextInputAction.next,
                                   decoration: InputDecoration(
-                                    labelText: 'Пароль',
-                                    hintText: 'Минимум 6 символов',
+                                    labelText: AppLocalizations.of(context)!.password,
+                                    hintText: AppLocalizations.of(context)!.passwordMinLength,
                                     prefixIcon: Icon(
                                       Icons.lock_outlined,
                                       color: colorScheme.primary,
@@ -256,11 +252,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ),
                                   ),
                                   validator: (value) {
+                                    final l10n = AppLocalizations.of(context)!;
                                     if (value == null || value.isEmpty) {
-                                      return 'Введите пароль';
+                                      return l10n.enterPassword;
                                     }
                                     if (value.length < 6) {
-                                      return 'Пароль должен быть не менее 6 символов';
+                                      return l10n.passwordTooShort;
                                     }
                                     return null;
                                   },
@@ -274,8 +271,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                     obscureText: _obscureConfirmPassword,
                                     textInputAction: TextInputAction.done,
                                     decoration: InputDecoration(
-                                      labelText: 'Подтвердите пароль',
-                                      hintText: 'Повторите пароль',
+                                    labelText: AppLocalizations.of(context)!.confirmPassword,
+                                    hintText: AppLocalizations.of(context)!.repeatPassword,
                                       prefixIcon: Icon(
                                         Icons.lock_outline,
                                         color: colorScheme.primary,
@@ -297,10 +294,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ),
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return 'Подтвердите пароль';
+                                        return AppLocalizations.of(context)!.confirmPasswordRequired;
                                       }
                                       if (value != _passwordController.text) {
-                                        return 'Пароли не совпадают';
+                                        return AppLocalizations.of(context)!.passwordsDoNotMatch;
                                       }
                                       return null;
                                     },
@@ -394,7 +391,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                _isLogin ? 'Войти' : 'Зарегистрироваться',
+                                                _isLogin ? AppLocalizations.of(context)!.signIn : AppLocalizations.of(context)!.register,
                                                 style: const TextStyle(
                                                   fontSize: 17,
                                                   fontWeight: FontWeight.bold,
@@ -427,7 +424,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _isLogin ? 'Нет аккаунта? ' : 'Уже есть аккаунт? ',
+                                _isLogin ? AppLocalizations.of(context)!.noAccount : AppLocalizations.of(context)!.alreadyHaveAccount,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: Colors.grey.shade700,
                                 ),
@@ -450,7 +447,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  _isLogin ? 'Зарегистрироваться' : 'Войти',
+                                  _isLogin ? AppLocalizations.of(context)!.register : AppLocalizations.of(context)!.signIn,
                                   style: TextStyle(
                                     color: colorScheme.primary,
                                     fontWeight: FontWeight.bold,

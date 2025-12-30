@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
-import 'auth_screen.dart';
+import '../services/locale_service.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/locale_provider.dart';
 
 /// Страница профиля пользователя
 class ProfilePage extends StatelessWidget {
@@ -9,39 +11,44 @@ class ProfilePage extends StatelessWidget {
 
   Future<void> _handleSignOut(BuildContext context) async {
     final authService = AuthService.instance;
-    final navigator = Navigator.of(context);
+    final localizations = AppLocalizations.of(context)!;
 
     // Показываем диалог подтверждения
     final shouldSignOut = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.logout, color: Colors.red),
-            SizedBox(width: 12),
-            Text('Выход из аккаунта'),
-          ],
-        ),
-        content: const Text(
-          'Вы уверены, что хотите выйти из аккаунта?',
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Отмена'),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+          title: Row(
+            children: [
+              const Icon(Icons.logout, color: Colors.red),
+              const SizedBox(width: 12),
+              Text(l10n.signOutTitle),
+            ],
+          ),
+          content: Text(
+            l10n.signOutConfirmation,
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
             ),
-            child: const Text('Выйти'),
-          ),
-        ],
-      ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(localizations.signOut),
+            ),
+          ],
+        );
+      },
     );
 
     if (shouldSignOut == true) {
@@ -51,19 +58,14 @@ class ProfilePage extends StatelessWidget {
         // Аналитика: выход из аккаунта
         await AnalyticsService.instance.logEvent('profile_sign_out');
 
-        // Переходим на экран входа и очищаем стек навигации
-        if (context.mounted) {
-          navigator.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const AuthScreen()),
-            (route) => false,
-          );
-        }
+        // Навигация произойдет автоматически через AuthWrapper в main.dart
+        // Не нужно делать ручную навигацию, чтобы избежать конфликтов
       } catch (e) {
         // Показываем ошибку, если выход не удался
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ошибка при выходе: $e'),
+              content: Text(localizations.signOutError(e.toString())),
               backgroundColor: Colors.red,
             ),
           );
@@ -77,6 +79,7 @@ class ProfilePage extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final user = AuthService.instance.currentUser;
+    final localizations = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -101,9 +104,9 @@ class ProfilePage extends StatelessWidget {
               pinned: true,
               elevation: 0,
               flexibleSpace: FlexibleSpaceBar(
-                title: const Text(
-                  'Профиль',
-                  style: TextStyle(
+                title: Text(
+                  localizations.profile,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -173,7 +176,7 @@ class ProfilePage extends StatelessWidget {
                             const SizedBox(height: 20),
                             // Email пользователя
                             Text(
-                              user?.email ?? 'Не указан',
+                              user?.email ?? localizations.notSpecified,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.primary,
@@ -207,7 +210,7 @@ class ProfilePage extends StatelessWidget {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Дата регистрации',
+                                            localizations.registrationDate,
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
                                                   color: Colors.grey.shade600,
@@ -253,7 +256,7 @@ class ProfilePage extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Информация об аккаунте',
+                                  localizations.accountInfo,
                                   style: theme.textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -263,17 +266,54 @@ class ProfilePage extends StatelessWidget {
                             const SizedBox(height: 16),
                             _InfoRow(
                               icon: Icons.email,
-                              label: 'Email',
-                              value: user?.email ?? 'Не указан',
+                              label: localizations.email,
+                              value: user?.email ?? localizations.notSpecified,
                               colorScheme: colorScheme,
                             ),
                             const SizedBox(height: 12),
                             _InfoRow(
                               icon: Icons.person_outline,
-                              label: 'ID пользователя',
-                              value: user?.uid ?? 'Не указан',
+                              label: localizations.userId,
+                              value: user?.uid ?? localizations.notSpecified,
                               colorScheme: colorScheme,
                               isLongText: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Карточка настроек
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.settings_outlined,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  AppLocalizations.of(context)!.settings,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            // Переключатель языка
+                            _LanguageSelector(
+                              colorScheme: colorScheme,
+                              theme: theme,
                             ),
                           ],
                         ),
@@ -298,8 +338,8 @@ class ProfilePage extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: () => _handleSignOut(context),
                         icon: const Icon(Icons.logout, color: Colors.white),
-                        label: const Text(
-                          'Выйти из аккаунта',
+                        label: Text(
+                          localizations.signOut,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -401,6 +441,133 @@ class _InfoRow extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Виджет для выбора языка
+class _LanguageSelector extends StatelessWidget {
+  final ColorScheme colorScheme;
+  final ThemeData theme;
+
+  const _LanguageSelector({required this.colorScheme, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    final currentLocale = Localizations.localeOf(context);
+    final supportedLocales = LocaleService.instance.getSupportedLocales();
+
+    // Функция для получения названия языка
+    String getLanguageName(Locale locale) {
+      if (localizations != null) {
+        switch (locale.languageCode) {
+          case 'en':
+            return localizations.english;
+          case 'ru':
+            return localizations.russian;
+        }
+      }
+      return LocaleService.instance.getLanguageName(locale);
+    }
+
+    // Функция для переключения языка
+    Future<void> _changeLanguage(Locale newLocale) async {
+      // Сохраняем выбранный язык (в Firestore и локально)
+      await LocaleService.instance.setLocale(newLocale);
+
+      // Логируем событие изменения языка
+      await AnalyticsService.instance.logEvent(
+        'language_changed',
+        parameters: {'locale': newLocale.languageCode},
+      );
+
+      // Обновляем язык через LocaleProvider (обновит весь интерфейс)
+      final localeProvider = LocaleProvider.of(context);
+      if (localeProvider != null) {
+        localeProvider.onLocaleChanged(newLocale);
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.language, size: 20, color: colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(
+                localizations?.language ?? 'Language',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...supportedLocales.map((locale) {
+            final isSelected =
+                currentLocale.languageCode == locale.languageCode;
+            final languageName = getLanguageName(locale);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: () => _changeLanguage(locale),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? colorScheme.primary.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? colorScheme.primary
+                          : Colors.grey.shade300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          languageName,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? colorScheme.primary
+                                : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (isSelected)
+                        Icon(
+                          Icons.check_circle,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );

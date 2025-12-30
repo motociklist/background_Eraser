@@ -16,22 +16,15 @@ class AnalyticsConfig {
   // Настраивается через google-services.json (Android) и GoogleService-Info.plist (iOS)
   static const bool enableFirebase = true;
 
-  // AdMob Ad Unit IDs
-  // Получить можно в AdMob Console: https://apps.admob.com/
-  // Для тестирования используйте test ad unit IDs:
-  // Android: ca-app-pub-3940256099942544/6300978111 (Banner)
-  //          ca-app-pub-3940256099942544/1033173712 (Interstitial)
-  //          ca-app-pub-3940256099942544/5224354917 (Rewarded)
-  // iOS:     ca-app-pub-3940256099942544/2934735716 (Banner)
-  //          ca-app-pub-3940256099942544/4411468910 (Interstitial)
-  //          ca-app-pub-3940256099942544/1712485313 (Rewarded)
+  // AdMob Ad Unit IDs (тестовые ключи)
+  // App ID: ca-app-pub-3940256099942544~1458002511
 
-  // Android Ad Unit IDs
+  // Android Ad Unit IDs (тестовые)
   static const String androidBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
   static const String androidInterstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
   static const String androidRewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
 
-  // iOS Ad Unit IDs (реальные)
+  // iOS Ad Unit IDs (тестовые)
   static const String iosBannerAdUnitId = 'ca-app-pub-3940256099942544/2934735716';
   static const String iosInterstitialAdUnitId = 'ca-app-pub-3940256099942544/4411468910';
   static const String iosRewardedAdUnitId = 'ca-app-pub-3940256099942544/1712485313';

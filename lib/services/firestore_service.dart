@@ -22,6 +22,7 @@ class FirestoreService {
   static const String _apiKeyField = 'apiKey';
   static const String _apiProviderField = 'apiProvider';
   static const String _blurRadiusField = 'blurRadius';
+  static const String _localeField = 'locale';
   static const String _updatedAtField = 'updatedAt';
 
   /// Получить ID текущего пользователя
@@ -222,6 +223,76 @@ class FirestoreService {
     }
   }
 
+  /// Сохранение языка в Firestore
+  Future<void> saveLocale(String localeCode) async {
+    try {
+      final userId = _currentUserId;
+      if (userId == null) {
+        _logger.logWarning(
+          message: 'Cannot save locale: user not authenticated',
+          context: null,
+        );
+        throw Exception('Пользователь не авторизован');
+      }
+
+      await _firestore.collection(_usersCollection).doc(userId).set({
+        _localeField: localeCode,
+        _updatedAtField: FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      _logger.logInfo(
+        message: 'Locale saved to Firestore',
+        data: {'user_id': userId, 'locale': localeCode},
+      );
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Failed to save locale to Firestore',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  /// Загрузка языка из Firestore
+  Future<String?> loadLocale() async {
+    try {
+      final userId = _currentUserId;
+      if (userId == null) {
+        return null;
+      }
+
+      final doc = await _firestore
+          .collection(_usersCollection)
+          .doc(userId)
+          .get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      final data = doc.data();
+      final localeCode = data?[_localeField] as String?;
+
+      _logger.logInfo(
+        message: 'Locale loaded from Firestore',
+        data: {
+          'user_id': userId,
+          'locale': localeCode,
+        },
+      );
+
+      return localeCode;
+    } catch (e, stackTrace) {
+      _logger.logError(
+        message: 'Failed to load locale from Firestore',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
   /// Загрузка всех настроек пользователя из Firestore
   Future<Map<String, dynamic>?> loadUserSettings() async {
     try {
@@ -249,6 +320,7 @@ class FirestoreService {
         'apiKey': data?[_apiKeyField] as String?,
         'apiProvider': data?[_apiProviderField] as String?,
         'blurRadius': data?[_blurRadiusField] as double?,
+        'locale': data?[_localeField] as String?,
       };
     } catch (e, stackTrace) {
       _logger.logError(

@@ -1,0 +1,267 @@
+{
+  "@@locale": "en",
+  "appTitle": "Background Eraser",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "editor": "Editor",
+  "@editor": {
+    "description": "Editor tab label"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile tab label"
+  },
+  "selectImage": "Select Image",
+  "@selectImage": {
+    "description": "Button to select an image"
+  },
+  "removeBackground": "Remove Background",
+  "@removeBackground": {
+    "description": "Button to remove background"
+  },
+  "blurBackground": "Blur Background",
+  "@blurBackground": {
+    "description": "Button to blur background"
+  },
+  "saveImage": "Save Image",
+  "@saveImage": {
+    "description": "Button to save image"
+  },
+  "apiProvider": "API Provider",
+  "@apiProvider": {
+    "description": "Label for API provider selector"
+  },
+  "blurRadius": "Blur Radius",
+  "@blurRadius": {
+    "description": "Label for blur radius slider"
+  },
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Processing message"
+  },
+  "error": "Error",
+  "@error": {
+    "description": "Error label"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language label"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language name"
+  },
+  "russian": "Russian",
+  "@russian": {
+    "description": "Russian language name"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings label"
+  },
+  "signOut": "Sign Out",
+  "@signOut": {
+    "description": "Sign out button label"
+  },
+  "signOutTitle": "Sign Out",
+  "@signOutTitle": {
+    "description": "Sign out dialog title"
+  },
+  "signOutConfirmation": "Are you sure you want to sign out?",
+  "@signOutConfirmation": {
+    "description": "Sign out confirmation message"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "signOutError": "Sign out error: {error}",
+  "@signOutError": {
+    "description": "Sign out error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile page title"
+  },
+  "accountInfo": "Account Information",
+  "@accountInfo": {
+    "description": "Account information section title"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email label"
+  },
+  "userId": "User ID",
+  "@userId": {
+    "description": "User ID label"
+  },
+  "notSpecified": "Not specified",
+  "@notSpecified": {
+    "description": "Not specified placeholder"
+  },
+  "registrationDate": "Registration Date",
+  "@registrationDate": {
+    "description": "Registration date label"
+  },
+  "welcome": "Welcome!",
+  "@welcome": {
+    "description": "Welcome message"
+  },
+  "createAccount": "Create Account",
+  "@createAccount": {
+    "description": "Create account title"
+  },
+  "signInToAccount": "Sign in to your account",
+  "@signInToAccount": {
+    "description": "Sign in message"
+  },
+  "registerToStart": "Register to get started",
+  "@registerToStart": {
+    "description": "Registration message"
+  },
+  "enterEmail": "Enter email",
+  "@enterEmail": {
+    "description": "Email validation error"
+  },
+  "enterValidEmail": "Enter a valid email",
+  "@enterValidEmail": {
+    "description": "Email format validation error"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password label"
+  },
+  "passwordMinLength": "Minimum 6 characters",
+  "@passwordMinLength": {
+    "description": "Password hint"
+  },
+  "enterPassword": "Enter password",
+  "@enterPassword": {
+    "description": "Password validation error"
+  },
+  "passwordTooShort": "Password must be at least 6 characters",
+  "@passwordTooShort": {
+    "description": "Password length validation error"
+  },
+  "confirmPassword": "Confirm Password",
+  "@confirmPassword": {
+    "description": "Confirm password label"
+  },
+  "repeatPassword": "Repeat password",
+  "@repeatPassword": {
+    "description": "Confirm password hint"
+  },
+  "confirmPasswordRequired": "Please confirm your password",
+  "@confirmPasswordRequired": {
+    "description": "Confirm password validation error"
+  },
+  "passwordsDoNotMatch": "Passwords do not match",
+  "@passwordsDoNotMatch": {
+    "description": "Password mismatch error"
+  },
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button"
+  },
+  "register": "Register",
+  "@register": {
+    "description": "Register button"
+  },
+  "noAccount": "Don't have an account? ",
+  "@noAccount": {
+    "description": "No account message"
+  },
+  "alreadyHaveAccount": "Already have an account? ",
+  "@alreadyHaveAccount": {
+    "description": "Already have account message"
+  },
+  "errorOccurred": "An error occurred: {error}",
+  "@errorOccurred": {
+    "description": "Generic error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "imageDownloaded": "Image downloaded successfully",
+  "@imageDownloaded": {
+    "description": "Image download success message"
+  },
+  "imageSavedToDownloads": "Image saved to Downloads folder",
+  "@imageSavedToDownloads": {
+    "description": "Image saved to downloads message"
+  },
+  "imageSavedToImages": "Image saved to Images/BackgroundEraser folder",
+  "@imageSavedToImages": {
+    "description": "Image saved to images folder message"
+  },
+  "imageSavedToInternal": "Image saved to app internal storage",
+  "@imageSavedToInternal": {
+    "description": "Image saved to internal storage message"
+  },
+  "imageSavedToGallery": "Image saved to gallery",
+  "@imageSavedToGallery": {
+    "description": "Image saved to gallery message"
+  },
+  "imageSaved": "Image saved",
+  "@imageSaved": {
+    "description": "Image saved message"
+  },
+  "saveError": "Save error: {error}",
+  "@saveError": {
+    "description": "Save error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "processingImage": "Processing image...",
+  "@processingImage": {
+    "description": "Image processing message"
+  },
+  "imageSelection": "Image Selection",
+  "@imageSelection": {
+    "description": "Image selection section title"
+  },
+  "originalImage": "Original Image",
+  "@originalImage": {
+    "description": "Original image label"
+  },
+  "processedImage": "Processed Image",
+  "@processedImage": {
+    "description": "Processed image label"
+  },
+  "selectProvider": "Select provider",
+  "@selectProvider": {
+    "description": "Provider selector hint"
+  },
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Gallery button label"
+  },
+  "camera": "Camera",
+  "@camera": {
+    "description": "Camera button label"
+  },
+  "noImageSelected": "No image selected",
+  "@noImageSelected": {
+    "description": "No image selected message"
+  },
+  "storageAccessDenied": "Failed to access storage",
+  "@storageAccessDenied": {
+    "description": "Storage access denied error"
+  },
+  "accessDenied": "Access denied",
+  "@accessDenied": {
+    "description": "Access denied error"
+  }
+}
+

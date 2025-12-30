@@ -8,5 +8,8 @@ class ApiConfig {
   static const String weeklyProductId = 'sonicforge_weekly';
   static const String monthlyProductId = 'sonicforge_monthly';
   static const String yearlyProductId = 'sonicforge_yearly';
+
+  // Freepik API
+  static const String freepikApiKey = 'FPSXab123d30b5ec1bf4df56b2c181809f5b';
 }
 

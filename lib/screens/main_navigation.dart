@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mst_projectfoto/l10n/app_localizations.dart';
 import 'background_editor_page.dart';
 import 'profile_page.dart';
 import '../services/analytics_service.dart';
+import '../services/ad_service.dart';
 
 /// Главный экран с навигацией
 class MainNavigation extends StatefulWidget {
@@ -26,8 +28,12 @@ class _MainNavigationState extends State<MainNavigation> {
     AnalyticsService.instance.logScreenView('main_navigation');
   }
 
-  void _onTabTapped(int index) {
+  void _onTabTapped(int index) async {
     if (_currentIndex != index) {
+      // Показываем interstitial рекламу при переключении вкладок (если доступна)
+      // Показываем не каждый раз, а периодически, чтобы не раздражать пользователя
+      await AdService.instance.showInterstitialAdIfNeeded();
+
       setState(() {
         _currentIndex = index;
       });
@@ -46,12 +52,15 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    // Безопасное получение локализации с fallback
+    final l10n = AppLocalizations.of(context);
+
+    // Fallback строки если локализация не загрузилась
+    final editorLabel = l10n?.editor ?? 'Редактор';
+    final profileLabel = l10n?.profile ?? 'Профиль';
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -78,16 +87,16 @@ class _MainNavigationState extends State<MainNavigation> {
             fontSize: 12,
           ),
           elevation: 8,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.photo_library),
-              activeIcon: Icon(Icons.photo_library),
-              label: 'Редактор',
+              icon: const Icon(Icons.photo_library),
+              activeIcon: const Icon(Icons.photo_library),
+              label: editorLabel,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Профиль',
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: profileLabel,
             ),
           ],
         ),
@@ -95,4 +104,3 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 }
-
