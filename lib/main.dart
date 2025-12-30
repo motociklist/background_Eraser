@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'package:mst_projectfoto/l10n/app_localizations.dart';
 import 'screens/auth_screen.dart';
@@ -14,6 +15,7 @@ import 'services/apphud_service.dart';
 import 'services/att_service.dart';
 import 'services/locale_service.dart';
 import 'widgets/locale_provider.dart';
+import 'widgets/app_lifecycle_wrapper.dart';
 import 'config/analytics_config.dart';
 import 'config/api_config.dart';
 
@@ -138,16 +140,27 @@ void main() async {
       String? bannerAdUnitId;
       String? interstitialAdUnitId;
       String? rewardedAdUnitId;
+      String? rewardedInterstitialAdUnitId;
+      String? nativeAdUnitId;
+      String? appOpenAdUnitId;
 
       if (!kIsWeb) {
         if (Platform.isAndroid) {
           bannerAdUnitId = AnalyticsConfig.androidBannerAdUnitId;
           interstitialAdUnitId = AnalyticsConfig.androidInterstitialAdUnitId;
           rewardedAdUnitId = AnalyticsConfig.androidRewardedAdUnitId;
+          rewardedInterstitialAdUnitId =
+              AnalyticsConfig.androidRewardedInterstitialAdUnitId;
+          nativeAdUnitId = AnalyticsConfig.androidNativeAdUnitId;
+          appOpenAdUnitId = AnalyticsConfig.androidAppOpenAdUnitId;
         } else if (Platform.isIOS) {
           bannerAdUnitId = AnalyticsConfig.iosBannerAdUnitId;
           interstitialAdUnitId = AnalyticsConfig.iosInterstitialAdUnitId;
           rewardedAdUnitId = AnalyticsConfig.iosRewardedAdUnitId;
+          rewardedInterstitialAdUnitId =
+              AnalyticsConfig.iosRewardedInterstitialAdUnitId;
+          nativeAdUnitId = AnalyticsConfig.iosNativeAdUnitId;
+          appOpenAdUnitId = AnalyticsConfig.iosAppOpenAdUnitId;
         }
       }
 
@@ -155,6 +168,9 @@ void main() async {
         bannerAdUnitId: bannerAdUnitId,
         interstitialAdUnitId: interstitialAdUnitId,
         rewardedAdUnitId: rewardedAdUnitId,
+        rewardedInterstitialAdUnitId: rewardedInterstitialAdUnitId,
+        nativeAdUnitId: nativeAdUnitId,
+        appOpenAdUnitId: appOpenAdUnitId,
         interstitialShowInterval: AnalyticsConfig.interstitialShowInterval,
       );
       logger.logInfo(message: 'Ad service initialized');
@@ -327,9 +343,11 @@ class _MaterialAppWithLocale extends StatelessWidget {
           ),
         ),
       ),
-      home: LocaleProvider(
-        onLocaleChanged: onLocaleChanged,
-        child: const AuthWrapper(),
+      home: AppLifecycleWrapper(
+        child: LocaleProvider(
+          onLocaleChanged: onLocaleChanged,
+          child: const AuthWrapper(),
+        ),
       ),
       debugShowCheckedModeBanner: false,
     );
@@ -337,8 +355,16 @@ class _MaterialAppWithLocale extends StatelessWidget {
 }
 
 /// Обертка для проверки авторизации
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  User? _previousUser;
+  bool _isInitialLoad = true;
 
   @override
   Widget build(BuildContext context) {
@@ -380,13 +406,77 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
+        final currentUser = snapshot.data;
+
+        // Проверяем, произошел ли вход в аккаунт (переход из неавторизованного в авторизованное)
+        final isNewLogin =
+            !_isInitialLoad && _previousUser == null && currentUser != null;
+
+        // Также показываем при первом запуске, если пользователь уже авторизован
+        final shouldShowAd =
+            (isNewLogin || (_isInitialLoad && currentUser != null)) && !kIsWeb;
+
         // Если пользователь авторизован - показываем главный экран с навигацией
-        // Используем ключ с userId, чтобы пересоздать виджет при смене пользователя
-        if (snapshot.hasData && snapshot.data != null) {
-          return MainNavigation(key: ValueKey(snapshot.data!.uid));
+        if (currentUser != null) {
+          // Показываем App Open рекламу при новом входе или первом запуске с авторизованным пользователем
+          if (shouldShowAd) {
+            final logger = LoggerService();
+            logger.init();
+            logger.logInfo(
+              message: 'Should show App Open ad',
+              data: {
+                'user_id': currentUser.uid,
+                'is_new_login': isNewLogin,
+                'is_initial_load': _isInitialLoad,
+                'previous_user': _previousUser?.uid ?? 'null',
+              },
+            );
+
+            // Загружаем рекламу сразу
+            AdService.instance.loadAppOpenAd();
+
+            // Небольшая задержка, чтобы пользователь увидел главный экран
+            // и реклама успела загрузиться
+            Future.delayed(const Duration(milliseconds: 2000), () async {
+              logger.logInfo(
+                message: 'Attempting to show App Open ad after delay',
+              );
+              try {
+                await AdService.instance.showAppOpenAd();
+              } catch (e) {
+                logger.logError(
+                  message: 'Failed to show App Open ad: $e',
+                  error: e,
+                );
+              }
+            });
+          } else {
+            // Логируем, почему реклама не показывается
+            final logger = LoggerService();
+            logger.init();
+            logger.logInfo(
+              message: 'App Open ad not shown',
+              data: {
+                'should_show': shouldShowAd,
+                'is_new_login': isNewLogin,
+                'is_initial_load': _isInitialLoad,
+                'previous_user': _previousUser?.uid ?? 'null',
+                'current_user': currentUser.uid,
+              },
+            );
+          }
+
+          // Обновляем предыдущее состояние
+          _previousUser = currentUser;
+          _isInitialLoad = false;
+
+          // Используем ключ с userId, чтобы пересоздать виджет при смене пользователя
+          return MainNavigation(key: ValueKey(currentUser.uid));
         }
 
-        // Если не авторизован - показываем экран входа/регистрации
+        // Если не авторизован - обновляем состояние и показываем экран входа/регистрации
+        _previousUser = null;
+        _isInitialLoad = false;
         return const AuthScreen();
       },
     );
