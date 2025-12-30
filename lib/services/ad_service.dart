@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, ChangeNotifier;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -31,6 +32,10 @@ class AdService {
   NativeAd? _nativeAd;
   AppOpenAd? _appOpenAd;
   bool _isAppOpenAdLoading = false;
+
+  // Completers для ожидания загрузки рекламы
+  Completer<void>? _rewardedAdLoadCompleter;
+  Completer<void>? _rewardedInterstitialAdLoadCompleter;
 
   // Счетчики для показа interstitial
   int _interstitialCounter = 0;
@@ -380,6 +385,18 @@ class AdService {
 
     _onRewardedAdCompleted = onRewarded;
 
+    // Если реклама уже загружается, ждем завершения
+    if (_rewardedAdLoadCompleter != null) {
+      return _rewardedAdLoadCompleter!.future;
+    }
+
+    // Если реклама уже загружена, не загружаем снова
+    if (_rewardedAd != null) {
+      return;
+    }
+
+    _rewardedAdLoadCompleter = Completer<void>();
+
     try {
       await RewardedAd.load(
         adUnitId: _rewardedAdUnitId!,
@@ -441,6 +458,11 @@ class AdService {
                 );
               },
             );
+            // Завершаем Completer при успешной загрузке
+            if (!_rewardedAdLoadCompleter!.isCompleted) {
+              _rewardedAdLoadCompleter!.complete();
+            }
+            _rewardedAdLoadCompleter = null;
           },
           onAdFailedToLoad: (error) {
             _logger.logError(
@@ -458,6 +480,12 @@ class AdService {
               },
             );
             _rewardedAd = null;
+            // Завершаем Completer даже при ошибке
+            if (_rewardedAdLoadCompleter != null &&
+                !_rewardedAdLoadCompleter!.isCompleted) {
+              _rewardedAdLoadCompleter!.complete();
+            }
+            _rewardedAdLoadCompleter = null;
           },
         ),
       );
@@ -467,18 +495,42 @@ class AdService {
         error: e,
         stackTrace: stackTrace,
       );
+      // Завершаем Completer при исключении
+      if (_rewardedAdLoadCompleter != null &&
+          !_rewardedAdLoadCompleter!.isCompleted) {
+        _rewardedAdLoadCompleter!.complete();
+      }
+      _rewardedAdLoadCompleter = null;
     }
   }
 
   /// Показ rewarded рекламы
-  Future<void> showRewardedAd() async {
+  Future<void> showRewardedAd({Function()? onRewarded}) async {
     if (kIsWeb) {
       return;
     }
 
+    // Сохраняем callback, если передан
+    if (onRewarded != null) {
+      _onRewardedAdCompleted = onRewarded;
+    }
+
+    // Если реклама не загружена, загружаем и ждем
     if (_rewardedAd == null) {
-      await loadRewardedAd();
-      return;
+      await loadRewardedAd(onRewarded: _onRewardedAdCompleted);
+
+      // Ждем загрузки с таймаутом (до 10 секунд)
+      int attempts = 0;
+      while (_rewardedAd == null && attempts < 20) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        attempts++;
+      }
+
+      // Если реклама все еще не загружена, выходим
+      if (_rewardedAd == null) {
+        _logger.logWarning(message: 'Rewarded ad not loaded after waiting');
+        return;
+      }
     }
 
     try {
@@ -515,6 +567,18 @@ class AdService {
     }
 
     _onRewardedInterstitialAdCompleted = onRewarded;
+
+    // Если реклама уже загружается, ждем завершения
+    if (_rewardedInterstitialAdLoadCompleter != null) {
+      return _rewardedInterstitialAdLoadCompleter!.future;
+    }
+
+    // Если реклама уже загружена, не загружаем снова
+    if (_rewardedInterstitialAd != null) {
+      return;
+    }
+
+    _rewardedInterstitialAdLoadCompleter = Completer<void>();
 
     try {
       await RewardedInterstitialAd.load(
@@ -577,6 +641,11 @@ class AdService {
                 );
               },
             );
+            // Завершаем Completer при успешной загрузке
+            if (!_rewardedInterstitialAdLoadCompleter!.isCompleted) {
+              _rewardedInterstitialAdLoadCompleter!.complete();
+            }
+            _rewardedInterstitialAdLoadCompleter = null;
           },
           onAdFailedToLoad: (error) {
             _logger.logError(
@@ -594,6 +663,12 @@ class AdService {
               },
             );
             _rewardedInterstitialAd = null;
+            // Завершаем Completer даже при ошибке
+            if (_rewardedInterstitialAdLoadCompleter != null &&
+                !_rewardedInterstitialAdLoadCompleter!.isCompleted) {
+              _rewardedInterstitialAdLoadCompleter!.complete();
+            }
+            _rewardedInterstitialAdLoadCompleter = null;
           },
         ),
       );
@@ -603,18 +678,46 @@ class AdService {
         error: e,
         stackTrace: stackTrace,
       );
+      // Завершаем Completer при исключении
+      if (_rewardedInterstitialAdLoadCompleter != null &&
+          !_rewardedInterstitialAdLoadCompleter!.isCompleted) {
+        _rewardedInterstitialAdLoadCompleter!.complete();
+      }
+      _rewardedInterstitialAdLoadCompleter = null;
     }
   }
 
   /// Показ Rewarded Interstitial рекламы
-  Future<void> showRewardedInterstitialAd() async {
+  Future<void> showRewardedInterstitialAd({Function()? onRewarded}) async {
     if (kIsWeb) {
       return;
     }
 
+    // Сохраняем callback, если передан
+    if (onRewarded != null) {
+      _onRewardedInterstitialAdCompleted = onRewarded;
+    }
+
+    // Если реклама не загружена, загружаем и ждем
     if (_rewardedInterstitialAd == null) {
-      await loadRewardedInterstitialAd();
-      return;
+      await loadRewardedInterstitialAd(
+        onRewarded: _onRewardedInterstitialAdCompleted,
+      );
+
+      // Ждем загрузки с таймаутом (до 10 секунд)
+      int attempts = 0;
+      while (_rewardedInterstitialAd == null && attempts < 20) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        attempts++;
+      }
+
+      // Если реклама все еще не загружена, выходим
+      if (_rewardedInterstitialAd == null) {
+        _logger.logWarning(
+          message: 'Rewarded Interstitial ad not loaded after waiting',
+        );
+        return;
+      }
     }
 
     try {

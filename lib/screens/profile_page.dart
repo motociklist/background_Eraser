@@ -396,7 +396,7 @@ class ProfilePage extends StatelessWidget {
                                     'Посмотрите видео и получите награду',
                                 colorScheme: colorScheme,
                                 onPressed: () async {
-                                  await AdService.instance.loadRewardedAd(
+                                  await AdService.instance.showRewardedAd(
                                     onRewarded: () {
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(
@@ -412,7 +412,6 @@ class ProfilePage extends StatelessWidget {
                                       }
                                     },
                                   );
-                                  await AdService.instance.showRewardedAd();
                                 },
                               ),
                               const SizedBox(height: 12),
@@ -424,7 +423,7 @@ class ProfilePage extends StatelessWidget {
                                 colorScheme: colorScheme,
                                 onPressed: () async {
                                   await AdService.instance
-                                      .loadRewardedInterstitialAd(
+                                      .showRewardedInterstitialAd(
                                         onRewarded: () {
                                           if (context.mounted) {
                                             ScaffoldMessenger.of(
@@ -440,8 +439,6 @@ class ProfilePage extends StatelessWidget {
                                           }
                                         },
                                       );
-                                  await AdService.instance
-                                      .showRewardedInterstitialAd();
                                 },
                               ),
                               const SizedBox(height: 12),
