@@ -12,6 +12,8 @@ import 'services/ad_service.dart';
 import 'services/auth_service.dart';
 import 'services/apphud_service.dart';
 import 'services/att_service.dart';
+import 'services/locale_service.dart';
+import 'widgets/locale_provider.dart';
 import 'config/analytics_config.dart';
 import 'config/api_config.dart';
 
@@ -63,7 +65,6 @@ void main() async {
     // Продолжаем работу даже если Firebase не инициализирован
   }
 
-
   // Инициализация ATT (App Tracking Transparency) для iOS
   try {
     await AttService.instance.init();
@@ -82,7 +83,8 @@ void main() async {
   // Инициализация аналитики
   try {
     await AnalyticsService.instance.init(
-      appMetricaApiKey: AnalyticsConfig.appMetricaApiKey != 'YOUR_APPMETRICA_API_KEY'
+      appMetricaApiKey:
+          AnalyticsConfig.appMetricaApiKey != 'YOUR_APPMETRICA_API_KEY'
           ? AnalyticsConfig.appMetricaApiKey
           : null,
       appsFlyerDevKey: AnalyticsConfig.appsFlyerDevKey,
@@ -115,18 +117,18 @@ void main() async {
 
   // Инициализация AppHud (подписки)
   // Запускаем в фоне, чтобы не блокировать UI
-  AppHudService.instance.init(
-    apiKey: ApiConfig.appHudApiKey,
-    enableAttribution: true,
-  ).then((_) {
-    logger.logInfo(message: 'AppHud service initialized');
-  }).catchError((e) {
-    logger.logError(
-      message: 'Failed to initialize AppHud Service',
-      error: e,
-      stackTrace: null,
-    );
-  });
+  AppHudService.instance
+      .init(apiKey: ApiConfig.appHudApiKey, enableAttribution: true)
+      .then((_) {
+        logger.logInfo(message: 'AppHud service initialized');
+      })
+      .catchError((e) {
+        logger.logError(
+          message: 'Failed to initialize AppHud Service',
+          error: e,
+          stackTrace: null,
+        );
+      });
 
   // Инициализация рекламы
   // Запускаем в фоне, чтобы не блокировать UI
@@ -169,8 +171,73 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale _locale = const Locale('en', '');
+  bool _isLoadingLocale = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedLocale();
+    // Слушаем изменения аутентификации для загрузки языка из Firestore
+    AuthService.instance.authStateChanges.listen((user) {
+      if (user != null) {
+        // Пользователь вошел - загружаем язык из Firestore
+        _loadSavedLocale();
+      }
+    });
+  }
+
+  Future<void> _loadSavedLocale() async {
+    // Загружаем язык (из Firestore, если пользователь авторизован, иначе из SharedPreferences)
+    final savedLocale = await LocaleService.instance.getSavedLocale();
+    if (mounted) {
+      setState(() {
+        _locale = savedLocale ?? const Locale('en', '');
+        _isLoadingLocale = false;
+      });
+    }
+  }
+
+  void changeLocale(Locale newLocale) {
+    setState(() {
+      _locale = newLocale;
+    });
+    // Сохраняем язык (в Firestore и локально)
+    LocaleService.instance.setLocale(newLocale);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Показываем загрузку пока определяем язык
+    if (_isLoadingLocale) {
+      return MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    return _MaterialAppWithLocale(
+      locale: _locale,
+      onLocaleChanged: changeLocale,
+    );
+  }
+}
+
+class _MaterialAppWithLocale extends StatelessWidget {
+  final Locale locale;
+  final ValueChanged<Locale> onLocaleChanged;
+
+  const _MaterialAppWithLocale({
+    required this.locale,
+    required this.onLocaleChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -178,8 +245,7 @@ class MyApp extends StatelessWidget {
       title: 'Background Eraser / Blur',
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      // Fallback locale если локализация не загрузилась
-      locale: const Locale('en', ''),
+      locale: locale,
       // Обработка ошибок в build методах
       builder: (context, child) {
         // Перехватываем ошибки в виджетах
@@ -261,7 +327,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthWrapper(),
+      home: LocaleProvider(
+        onLocaleChanged: onLocaleChanged,
+        child: const AuthWrapper(),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -312,8 +381,9 @@ class AuthWrapper extends StatelessWidget {
         }
 
         // Если пользователь авторизован - показываем главный экран с навигацией
+        // Используем ключ с userId, чтобы пересоздать виджет при смене пользователя
         if (snapshot.hasData && snapshot.data != null) {
-          return const MainNavigation();
+          return MainNavigation(key: ValueKey(snapshot.data!.uid));
         }
 
         // Если не авторизован - показываем экран входа/регистрации

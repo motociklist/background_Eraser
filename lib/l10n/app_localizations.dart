@@ -110,7 +110,7 @@ abstract class AppLocalizations {
   /// **'Editor'**
   String get editor;
 
-  /// Profile tab label
+  /// Profile page title
   ///
   /// In en, this message translates to:
   /// **'Profile'**
@@ -163,6 +163,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error'**
   String get error;
+
+  /// Language label
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// English language name
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// Russian language name
+  ///
+  /// In en, this message translates to:
+  /// **'Russian'**
+  String get russian;
+
+  /// Settings label
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// Sign out button label
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get signOut;
+
+  /// Sign out dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get signOutTitle;
+
+  /// Sign out confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to sign out?'**
+  String get signOutConfirmation;
+
+  /// Cancel button label
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Sign out error message
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out error: {error}'**
+  String signOutError(String error);
+
+  /// Account information section title
+  ///
+  /// In en, this message translates to:
+  /// **'Account Information'**
+  String get accountInfo;
+
+  /// Email label
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get email;
+
+  /// User ID label
+  ///
+  /// In en, this message translates to:
+  /// **'User ID'**
+  String get userId;
+
+  /// Not specified placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Not specified'**
+  String get notSpecified;
+
+  /// Registration date label
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Date'**
+  String get registrationDate;
+
+  /// Welcome message
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome!'**
+  String get welcome;
+
+  /// Create account title
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get createAccount;
+
+  /// Sign in message
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your account'**
+  String get signInToAccount;
+
+  /// Registration message
+  ///
+  /// In en, this message translates to:
+  /// **'Register to get started'**
+  String get registerToStart;
+
+  /// Email validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Enter email'**
+  String get enterEmail;
+
+  /// Email format validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email'**
+  String get enterValidEmail;
+
+  /// Password label
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// Password hint
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum 6 characters'**
+  String get passwordMinLength;
+
+  /// Password validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get enterPassword;
+
+  /// Password length validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get passwordTooShort;
+
+  /// Confirm password label
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPassword;
+
+  /// Confirm password hint
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat password'**
+  String get repeatPassword;
+
+  /// Confirm password validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your password'**
+  String get confirmPasswordRequired;
+
+  /// Password mismatch error
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordsDoNotMatch;
+
+  /// Sign in button
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get signIn;
+
+  /// Register button
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get register;
+
+  /// No account message
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? '**
+  String get noAccount;
+
+  /// Already have account message
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? '**
+  String get alreadyHaveAccount;
+
+  /// Generic error message
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred: {error}'**
+  String errorOccurred(String error);
+
+  /// Image download success message
+  ///
+  /// In en, this message translates to:
+  /// **'Image downloaded successfully'**
+  String get imageDownloaded;
+
+  /// Image saved to downloads message
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved to Downloads folder'**
+  String get imageSavedToDownloads;
+
+  /// Image saved to images folder message
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved to Images/BackgroundEraser folder'**
+  String get imageSavedToImages;
+
+  /// Image saved to internal storage message
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved to app internal storage'**
+  String get imageSavedToInternal;
+
+  /// Image saved to gallery message
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved to gallery'**
+  String get imageSavedToGallery;
+
+  /// Image saved message
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved'**
+  String get imageSaved;
+
+  /// Save error message
+  ///
+  /// In en, this message translates to:
+  /// **'Save error: {error}'**
+  String saveError(String error);
+
+  /// Image processing message
+  ///
+  /// In en, this message translates to:
+  /// **'Processing image...'**
+  String get processingImage;
+
+  /// Image selection section title
+  ///
+  /// In en, this message translates to:
+  /// **'Image Selection'**
+  String get imageSelection;
+
+  /// Original image label
+  ///
+  /// In en, this message translates to:
+  /// **'Original Image'**
+  String get originalImage;
+
+  /// Processed image label
+  ///
+  /// In en, this message translates to:
+  /// **'Processed Image'**
+  String get processedImage;
+
+  /// Provider selector hint
+  ///
+  /// In en, this message translates to:
+  /// **'Select provider'**
+  String get selectProvider;
+
+  /// Gallery button label
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// Camera button label
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No image selected message
+  ///
+  /// In en, this message translates to:
+  /// **'No image selected'**
+  String get noImageSelected;
+
+  /// Storage access denied error
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to access storage'**
+  String get storageAccessDenied;
+
+  /// Access denied error
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied'**
+  String get accessDenied;
 }
 
 class _AppLocalizationsDelegate

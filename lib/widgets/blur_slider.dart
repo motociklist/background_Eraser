@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 /// Виджет слайдера для настройки радиуса размытия
 class BlurSlider extends StatelessWidget {
@@ -26,7 +27,7 @@ class BlurSlider extends StatelessWidget {
               Icon(Icons.blur_on, color: Colors.purple.shade600, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Радиус размытия',
+                AppLocalizations.of(context)!.blurRadius,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.purple.shade900,

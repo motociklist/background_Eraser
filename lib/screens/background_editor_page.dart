@@ -18,6 +18,7 @@ import '../services/logger_service.dart';
 import '../services/analytics_service.dart';
 import '../services/ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../l10n/app_localizations.dart';
 
 /// Главный экран приложения для обработки изображений
 class BackgroundEditorPage extends StatefulWidget {
@@ -87,7 +88,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Изображение скачано успешно')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.imageDownloaded)),
           );
         }
       } else {
@@ -126,9 +127,9 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                 await directory.create(recursive: true);
               }
 
-              saveMessage = 'Изображение сохранено в папку "Загрузки"';
+              saveMessage = AppLocalizations.of(context)!.imageSavedToDownloads;
             } else {
-              throw Exception('Не удалось получить доступ к хранилищу');
+              throw Exception(AppLocalizations.of(context)!.storageAccessDenied);
             }
           } catch (e) {
             // Fallback: используем папку Pictures
@@ -144,26 +145,24 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                 if (!await directory.exists()) {
                   await directory.create(recursive: true);
                 }
-                saveMessage =
-                    'Изображение сохранено в папку "Изображения/BackgroundEraser"';
+                saveMessage = AppLocalizations.of(context)!.imageSavedToImages;
               } else {
-                throw Exception('Не удалось получить доступ');
+                throw Exception(AppLocalizations.of(context)!.accessDenied);
               }
             } catch (_) {
               // Последний fallback: внутреннее хранилище
               directory = await getApplicationDocumentsDirectory();
-              saveMessage =
-                  'Изображение сохранено во внутреннее хранилище приложения';
+              saveMessage = AppLocalizations.of(context)!.imageSavedToInternal;
             }
           }
         } else if (Platform.isIOS) {
           // Для iOS используем папку документов
           directory = await getApplicationDocumentsDirectory();
-          saveMessage = 'Изображение сохранено в галерею';
+          saveMessage = AppLocalizations.of(context)!.imageSavedToGallery;
         } else {
           // Для других платформ
           directory = await getApplicationDocumentsDirectory();
-          saveMessage = 'Изображение сохранено';
+          saveMessage = AppLocalizations.of(context)!.imageSaved;
         }
 
         final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -224,7 +223,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.saveError(e.toString()))));
       }
     }
   }
@@ -253,7 +252,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
       child: SafeArea(
         bottom: false,
         child: state.isProcessing
-            ? const LoadingIndicator(message: 'Обработка изображения...')
+            ? LoadingIndicator(message: AppLocalizations.of(context)!.processingImage)
             : CustomScrollView(
                   slivers: [
                     // App Bar
@@ -315,7 +314,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                'Настройки',
+                                                AppLocalizations.of(context)!.settings,
                                                 style: theme
                                                     .textTheme
                                                     .titleLarge
@@ -364,7 +363,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                'Выбор изображения',
+                                                AppLocalizations.of(context)!.imageSelection,
                                                 style: theme
                                                     .textTheme
                                                     .titleLarge
@@ -405,7 +404,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                               const SizedBox(width: 8),
                                               Expanded(
                                                 child: Text(
-                                                  'Оригинальное изображение',
+                                                  AppLocalizations.of(context)!.originalImage,
                                                   style: theme
                                                       .textTheme
                                                       .titleLarge
@@ -471,7 +470,7 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                               const SizedBox(width: 8),
                                               Expanded(
                                                 child: Text(
-                                                  'Обработанное изображение',
+                                                  AppLocalizations.of(context)!.processedImage,
                                                   style: theme
                                                       .textTheme
                                                       .titleLarge
@@ -507,8 +506,8 @@ class _BackgroundEditorPageState extends State<BackgroundEditorPage> {
                                                 Icons.download,
                                                 color: Colors.white,
                                               ),
-                                              label: const Text(
-                                                'Сохранить изображение',
+                                              label: Text(
+                                                AppLocalizations.of(context)!.saveImage,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.bold,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 /// Виджет для выбора API провайдера
 class ProviderSelector extends StatelessWidget {
@@ -20,8 +21,8 @@ class ProviderSelector extends StatelessWidget {
       key: ValueKey(selectedProvider),
       initialValue: selectedProvider,
       decoration: InputDecoration(
-        labelText: 'API Провайдер',
-        hintText: 'Выберите провайдера',
+        labelText: AppLocalizations.of(context)!.apiProvider,
+        hintText: AppLocalizations.of(context)!.selectProvider,
         prefixIcon: Icon(Icons.cloud, color: colorScheme.primary),
       ),
       items: [

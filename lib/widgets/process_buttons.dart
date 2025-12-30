@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 /// Виджет кнопок обработки изображения
 class ProcessButtons extends StatelessWidget {
@@ -17,6 +18,7 @@ class ProcessButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final localizations = AppLocalizations.of(context)!;
 
     return Row(
       children: [
@@ -24,7 +26,7 @@ class ProcessButtons extends StatelessWidget {
           child: _GradientButton(
             onPressed: isProcessing ? null : onRemoveBackground,
             icon: Icons.auto_fix_high,
-            label: 'Удалить фон',
+            label: localizations.removeBackground,
             gradient: LinearGradient(
               colors: [
                 colorScheme.primary,
@@ -39,7 +41,7 @@ class ProcessButtons extends StatelessWidget {
           child: _GradientButton(
             onPressed: isProcessing ? null : onBlurBackground,
             icon: Icons.blur_on,
-            label: 'Размыть фон',
+            label: localizations.blurBackground,
             gradient: LinearGradient(
               colors: [Colors.purple.shade600, Colors.purple.shade400],
             ),

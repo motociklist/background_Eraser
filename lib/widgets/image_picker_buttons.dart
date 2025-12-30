@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../l10n/app_localizations.dart';
 
 /// Виджет кнопок для выбора изображения
 class ImagePickerButtons extends StatelessWidget {
@@ -11,6 +12,7 @@ class ImagePickerButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final localizations = AppLocalizations.of(context)!;
 
     return Row(
       children: [
@@ -18,7 +20,7 @@ class ImagePickerButtons extends StatelessWidget {
           child: _ImagePickerButton(
             onPressed: () => onImagePicked(ImageSource.gallery),
             icon: Icons.photo_library,
-            label: 'Галерея',
+            label: localizations.gallery,
             color: colorScheme.secondary,
           ),
         ),
@@ -27,7 +29,7 @@ class ImagePickerButtons extends StatelessWidget {
           child: _ImagePickerButton(
             onPressed: () => onImagePicked(ImageSource.camera),
             icon: Icons.camera_alt,
-            label: 'Камера',
+            label: localizations.camera,
             color: colorScheme.tertiary,
           ),
         ),
