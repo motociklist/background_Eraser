@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
-import 'screens/background_editor_page.dart';
+import 'screens/main_navigation.dart';
 import 'services/logger_service.dart';
 import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
@@ -207,9 +207,9 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // Если пользователь авторизован - показываем главный экран
+        // Если пользователь авторизован - показываем главный экран с навигацией
         if (snapshot.hasData && snapshot.data != null) {
-          return const BackgroundEditorPage();
+          return const MainNavigation();
         }
 
         // Если не авторизован - показываем экран входа/регистрации
