@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
+import '../services/ad_service.dart';
+import '../services/logger_service.dart';
 import '../services/locale_service.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/locale_provider.dart';
+import '../widgets/native_ad_widget.dart';
 
 /// Страница профиля пользователя
 class ProfilePage extends StatelessWidget {
@@ -255,10 +259,13 @@ class ProfilePage extends StatelessWidget {
                                   color: colorScheme.primary,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  localizations.accountInfo,
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                                Expanded(
+                                  child: Text(
+                                    localizations.accountInfo,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -315,6 +322,301 @@ class ProfilePage extends StatelessWidget {
                               colorScheme: colorScheme,
                               theme: theme,
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Карточка тестирования рекламы
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.ads_click,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Тестирование рекламы',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (!kIsWeb) ...[
+                              // Banner реклама
+                              _AdTestButton(
+                                icon: Icons.view_carousel,
+                                label: 'Banner (Баннер)',
+                                description: 'Показать баннерную рекламу',
+                                colorScheme: colorScheme,
+                                onPressed: () async {
+                                  await AdService.instance.loadBannerAd();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Баннер загружен! Проверьте главный экран.',
+                                        ),
+                                        backgroundColor: Colors.blue,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Interstitial реклама
+                              _AdTestButton(
+                                icon: Icons.fullscreen,
+                                label: 'Interstitial (Межстраничная)',
+                                description: 'Показать межстраничную рекламу',
+                                colorScheme: colorScheme,
+                                onPressed: () async {
+                                  await AdService.instance.loadInterstitialAd();
+                                  await AdService.instance.showInterstitialAd();
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Rewarded реклама
+                              _AdTestButton(
+                                icon: Icons.video_library,
+                                label: 'Rewarded (Видео с наградой)',
+                                description:
+                                    'Посмотрите видео и получите награду',
+                                colorScheme: colorScheme,
+                                onPressed: () async {
+                                  await AdService.instance.loadRewardedAd(
+                                    onRewarded: () {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              '🎉 Награда получена!',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  );
+                                  await AdService.instance.showRewardedAd();
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Rewarded Interstitial реклама
+                              _AdTestButton(
+                                icon: Icons.play_circle_outline,
+                                label: 'Rewarded Interstitial',
+                                description: 'Межстраничная реклама с наградой',
+                                colorScheme: colorScheme,
+                                onPressed: () async {
+                                  await AdService.instance
+                                      .loadRewardedInterstitialAd(
+                                        onRewarded: () {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  '🎉 Награда получена!',
+                                                ),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      );
+                                  await AdService.instance
+                                      .showRewardedInterstitialAd();
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // App Open реклама
+                              _AdTestButton(
+                                icon: Icons.open_in_new,
+                                label: 'App Open (При открытии)',
+                                description: 'Показать рекламу при открытии',
+                                colorScheme: colorScheme,
+                                onPressed: () async {
+                                  try {
+                                    final logger = LoggerService();
+                                    logger.init();
+                                    logger.logInfo(
+                                      message: 'App Open button pressed',
+                                    );
+
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Загрузка App Open рекламы...',
+                                          ),
+                                          duration: Duration(seconds: 1),
+                                          backgroundColor: Colors.blue,
+                                        ),
+                                      );
+                                    }
+
+                                    // Загружаем рекламу
+                                    await AdService.instance.loadAppOpenAd();
+
+                                    // Ждем загрузки (до 3 секунд)
+                                    await Future.delayed(
+                                      const Duration(seconds: 3),
+                                    );
+
+                                    // Пытаемся показать рекламу
+                                    final success = await AdService.instance
+                                        .showAppOpenAd();
+
+                                    if (context.mounted) {
+                                      if (success) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              '✅ App Open реклама показана',
+                                            ),
+                                            duration: Duration(seconds: 2),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              '❌ Не удалось загрузить App Open рекламу.\n'
+                                              'Ошибка: Ad unit doesn\'t match format.\n'
+                                              'Проверьте Ad Unit ID в консоли AdMob.',
+                                            ),
+                                            duration: Duration(seconds: 5),
+                                            backgroundColor: Colors.orange,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  } catch (e) {
+                                    final logger = LoggerService();
+                                    logger.init();
+                                    logger.logError(
+                                      message: 'Error showing App Open ad: $e',
+                                      error: e,
+                                    );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Ошибка: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Native реклама (кнопка для показа в диалоге)
+                              _AdTestButton(
+                                icon: Icons.article,
+                                label: 'Native (Нативная)',
+                                description: 'Показать нативную рекламу',
+                                colorScheme: colorScheme,
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => Dialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 400,
+                                          maxHeight: 500,
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  'Нативная реклама',
+                                                  style: theme
+                                                      .textTheme
+                                                      .titleLarge
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons.close),
+                                                  onPressed: () => Navigator.of(
+                                                    context,
+                                                  ).pop(),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 16),
+                                            const Expanded(
+                                              child: NativeAdWidget(
+                                                height: 400,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              // Разделитель
+                              Divider(color: Colors.grey.shade300),
+                              const SizedBox(height: 16),
+                              // Native реклама (встроенная)
+                              Text(
+                                'Native реклама (встроенная)',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const NativeAdWidget(height: 300),
+                            ] else
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                  'Реклама доступна только на мобильных платформах',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -570,6 +872,75 @@ class _LanguageSelector extends StatelessWidget {
             );
           }),
         ],
+      ),
+    );
+  }
+}
+
+/// Кнопка для тестирования рекламы
+class _AdTestButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String description;
+  final ColorScheme colorScheme;
+  final VoidCallback onPressed;
+
+  const _AdTestButton({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.colorScheme,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: colorScheme.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: colorScheme.primary),
+          ],
+        ),
       ),
     );
   }

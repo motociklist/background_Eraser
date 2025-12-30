@@ -20,9 +20,12 @@ class AnalyticsConfig {
   // App ID: ca-app-pub-3940256099942544~1458002511
 
   // Android Ad Unit IDs (тестовые)
-  static const String androidBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String androidInterstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
-  static const String androidRewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
+  static const String androidBannerAdUnitId = 'ca-app-pub-3940256099942544/2934735716';
+  static const String androidInterstitialAdUnitId = 'ca-app-pub-3940256099942544/4411468910';
+  static const String androidRewardedAdUnitId = 'ca-app-pub-3940256099942544/1712485313';
+  static const String androidRewardedInterstitialAdUnitId = 'ca-app-pub-3940256099942544/6978759866';
+  static const String androidNativeAdUnitId = 'ca-app-pub-3940256099942544/3986624511';
+  static const String androidAppOpenAdUnitId = 'ca-app-pub-3940256099942544/5662855259';
 
   // iOS Ad Unit IDs (тестовые)
   static const String iosBannerAdUnitId = 'ca-app-pub-3940256099942544/2934735716';

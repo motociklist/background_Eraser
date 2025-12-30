@@ -26,6 +26,7 @@ class _MainNavigationState extends State<MainNavigation> {
     super.initState();
     // Аналитика: просмотр главного экрана
     AnalyticsService.instance.logScreenView('main_navigation');
+    // App Open реклама теперь показывается в AuthWrapper при обнаружении нового входа
   }
 
   void _onTabTapped(int index) async {
