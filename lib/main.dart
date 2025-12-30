@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:mst_projectfoto/l10n/app_localizations.dart';
@@ -17,6 +16,31 @@ import 'config/analytics_config.dart';
 import 'config/api_config.dart';
 
 void main() async {
+  // Обработка ошибок Flutter для предотвращения белого экрана
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    // Логируем критическую ошибку
+    final logger = LoggerService();
+    logger.init();
+    logger.logError(
+      message: 'Flutter error: ${details.exception}',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+
+  // Обработка асинхронных ошибок
+  PlatformDispatcher.instance.onError = (error, stack) {
+    final logger = LoggerService();
+    logger.init();
+    logger.logError(
+      message: 'Platform error: $error',
+      error: error,
+      stackTrace: stack,
+    );
+    return true;
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // Инициализация логирования
@@ -90,54 +114,58 @@ void main() async {
   }
 
   // Инициализация AppHud (подписки)
-  try {
-    await AppHudService.instance.init(
-      apiKey: ApiConfig.appHudApiKey,
-      enableAttribution: true,
-    );
+  // Запускаем в фоне, чтобы не блокировать UI
+  AppHudService.instance.init(
+    apiKey: ApiConfig.appHudApiKey,
+    enableAttribution: true,
+  ).then((_) {
     logger.logInfo(message: 'AppHud service initialized');
-  } catch (e) {
+  }).catchError((e) {
     logger.logError(
       message: 'Failed to initialize AppHud Service',
       error: e,
       stackTrace: null,
     );
-  }
+  });
 
   // Инициализация рекламы
-  try {
-    // Определяем Ad Unit IDs в зависимости от платформы
-    String? bannerAdUnitId;
-    String? interstitialAdUnitId;
-    String? rewardedAdUnitId;
+  // Запускаем в фоне, чтобы не блокировать UI
+  Future.microtask(() async {
+    try {
+      // Определяем Ad Unit IDs в зависимости от платформы
+      String? bannerAdUnitId;
+      String? interstitialAdUnitId;
+      String? rewardedAdUnitId;
 
-    if (!kIsWeb) {
-      if (Platform.isAndroid) {
-        bannerAdUnitId = AnalyticsConfig.androidBannerAdUnitId;
-        interstitialAdUnitId = AnalyticsConfig.androidInterstitialAdUnitId;
-        rewardedAdUnitId = AnalyticsConfig.androidRewardedAdUnitId;
-      } else if (Platform.isIOS) {
-        bannerAdUnitId = AnalyticsConfig.iosBannerAdUnitId;
-        interstitialAdUnitId = AnalyticsConfig.iosInterstitialAdUnitId;
-        rewardedAdUnitId = AnalyticsConfig.iosRewardedAdUnitId;
+      if (!kIsWeb) {
+        if (Platform.isAndroid) {
+          bannerAdUnitId = AnalyticsConfig.androidBannerAdUnitId;
+          interstitialAdUnitId = AnalyticsConfig.androidInterstitialAdUnitId;
+          rewardedAdUnitId = AnalyticsConfig.androidRewardedAdUnitId;
+        } else if (Platform.isIOS) {
+          bannerAdUnitId = AnalyticsConfig.iosBannerAdUnitId;
+          interstitialAdUnitId = AnalyticsConfig.iosInterstitialAdUnitId;
+          rewardedAdUnitId = AnalyticsConfig.iosRewardedAdUnitId;
+        }
       }
+
+      await AdService.instance.init(
+        bannerAdUnitId: bannerAdUnitId,
+        interstitialAdUnitId: interstitialAdUnitId,
+        rewardedAdUnitId: rewardedAdUnitId,
+        interstitialShowInterval: AnalyticsConfig.interstitialShowInterval,
+      );
+      logger.logInfo(message: 'Ad service initialized');
+    } catch (e) {
+      logger.logError(
+        message: 'Failed to initialize Ad Service',
+        error: e,
+        stackTrace: null,
+      );
     }
+  });
 
-    await AdService.instance.init(
-      bannerAdUnitId: bannerAdUnitId,
-      interstitialAdUnitId: interstitialAdUnitId,
-      rewardedAdUnitId: rewardedAdUnitId,
-      interstitialShowInterval: AnalyticsConfig.interstitialShowInterval,
-    );
-    logger.logInfo(message: 'Ad service initialized');
-  } catch (e) {
-    logger.logError(
-      message: 'Failed to initialize Ad Service',
-      error: e,
-      stackTrace: null,
-    );
-  }
-
+  // Запускаем приложение сразу, не дожидаясь инициализации рекламы
   runApp(const MyApp());
 }
 
@@ -148,16 +176,36 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Background Eraser / Blur',
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('ru', ''), // Russian
-      ],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      // Fallback locale если локализация не загрузилась
+      locale: const Locale('en', ''),
+      // Обработка ошибок в build методах
+      builder: (context, child) {
+        // Перехватываем ошибки в виджетах
+        ErrorWidget.builder = (FlutterErrorDetails details) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Ошибка отображения: ${details.exception}',
+                      style: const TextStyle(fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        };
+        return child ?? const SizedBox.shrink();
+      },
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -228,6 +276,34 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder(
       stream: AuthService.instance.authStateChanges,
       builder: (context, snapshot) {
+        // Обработка ошибок
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ошибка: ${snapshot.error}',
+                    style: const TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Попытка перезапуска
+                      runApp(const MyApp());
+                    },
+                    child: const Text('Перезапустить'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         // Показываем загрузку пока проверяем состояние
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
