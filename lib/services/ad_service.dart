@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 // import 'package:ironsource_mediation/ironsource_mediation.dart'; // Опционально
 import 'analytics_service.dart';
@@ -53,12 +54,21 @@ class AdService {
     try {
       _logger.init();
 
+      // Google Mobile Ads не поддерживает веб-платформу
+      if (kIsWeb) {
+        _logger.logInfo(
+          message: 'AdService skipped for web platform (not supported)',
+        );
+        _isInitialized = true;
+        return;
+      }
+
       _bannerAdUnitId = bannerAdUnitId;
       _interstitialAdUnitId = interstitialAdUnitId;
       _rewardedAdUnitId = rewardedAdUnitId;
       _interstitialShowInterval = interstitialShowInterval;
 
-      // Инициализация AdMob
+      // Инициализация AdMob только для мобильных платформ
       await MobileAds.instance.initialize();
 
       // Инициализация ironSource (опционально)
@@ -103,11 +113,15 @@ class AdService {
 
   /// Загрузка и показ баннерной рекламы
   Future<BannerAd?> loadBannerAd({AdSize? adSize, AdRequest? request}) async {
-    if (!_isInitialized || _bannerAdUnitId == null) {
-      _logger.logWarning(
-        message: 'AdService not initialized or banner ad unit ID not set',
-        context: {},
-      );
+    if (kIsWeb || !_isInitialized || _bannerAdUnitId == null) {
+      if (kIsWeb) {
+        _logger.logInfo(message: 'Banner ad skipped for web platform');
+      } else {
+        _logger.logWarning(
+          message: 'AdService not initialized or banner ad unit ID not set',
+          context: {},
+        );
+      }
       return null;
     }
 
@@ -176,7 +190,7 @@ class AdService {
 
   /// Загрузка interstitial рекламы
   Future<void> loadInterstitialAd() async {
-    if (!_isInitialized || _interstitialAdUnitId == null) {
+    if (kIsWeb || !_isInitialized || _interstitialAdUnitId == null) {
       return;
     }
 
@@ -288,6 +302,10 @@ class AdService {
 
   /// Показ interstitial рекламы
   Future<void> showInterstitialAd() async {
+    if (kIsWeb) {
+      return;
+    }
+
     if (_interstitialAd == null) {
       await loadInterstitialAd();
       return;
@@ -306,7 +324,7 @@ class AdService {
 
   /// Загрузка rewarded рекламы
   Future<void> loadRewardedAd({Function()? onRewarded}) async {
-    if (!_isInitialized || _rewardedAdUnitId == null) {
+    if (kIsWeb || !_isInitialized || _rewardedAdUnitId == null) {
       return;
     }
 
@@ -404,6 +422,10 @@ class AdService {
 
   /// Показ rewarded рекламы
   Future<void> showRewardedAd() async {
+    if (kIsWeb) {
+      return;
+    }
+
     if (_rewardedAd == null) {
       await loadRewardedAd();
       return;
