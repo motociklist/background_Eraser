@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../services/ad_service.dart';
 
 /// Виджет-обертка для управления жизненным циклом приложения и показом App Open рекламы
 class AppLifecycleWrapper extends StatefulWidget {
@@ -47,8 +46,9 @@ class _AppLifecycleWrapperState extends State<AppLifecycleWrapper>
         // Приложение вернулось на передний план
         if (!_isAppInForeground) {
           _isAppInForeground = true;
-          // Показываем App Open рекламу при возврате в приложение
-          AdService.instance.showAppOpenAd();
+          // App Open реклама теперь показывается только при входе в аккаунт,
+          // а не при каждом возврате в приложение
+          // AdService.instance.showAppOpenAd(); // Отключено
         }
         break;
       case AppLifecycleState.paused:

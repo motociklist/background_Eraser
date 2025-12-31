@@ -399,94 +399,7 @@ class ProfilePage extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               // App Open реклама
-                              AdTestButton(
-                                icon: Icons.open_in_new,
-                                label: 'App Open (При открытии)',
-                                description: 'Показать рекламу при открытии',
-                                colorScheme: colorScheme,
-                                onPressed: () async {
-                                  try {
-                                    final logger = LoggerService();
-                                    logger.init();
-                                    logger.logInfo(
-                                      message: 'App Open button pressed',
-                                    );
-
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Загрузка App Open рекламы...',
-                                          ),
-                                          duration: Duration(seconds: 1),
-                                          backgroundColor: Colors.blue,
-                                        ),
-                                      );
-                                    }
-
-                                    // Загружаем рекламу
-                                    await AdService.instance.loadAppOpenAd();
-
-                                    // Ждем загрузки (до 3 секунд)
-                                    await Future.delayed(
-                                      const Duration(seconds: 3),
-                                    );
-
-                                    // Пытаемся показать рекламу
-                                    final success = await AdService.instance
-                                        .showAppOpenAd();
-
-                                    if (context.mounted) {
-                                      if (success) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              '✅ App Open реклама показана',
-                                            ),
-                                            duration: Duration(seconds: 2),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              '❌ Не удалось загрузить App Open рекламу.\n'
-                                              'Ошибка: Ad unit doesn\'t match format.\n'
-                                              'Проверьте Ad Unit ID в консоли AdMob.',
-                                            ),
-                                            duration: Duration(seconds: 5),
-                                            backgroundColor: Colors.orange,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  } catch (e) {
-                                    final logger = LoggerService();
-                                    logger.init();
-                                    logger.logError(
-                                      message: 'Error showing App Open ad: $e',
-                                      error: e,
-                                    );
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Ошибка: $e'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                              ),
+                              _AppOpenAdButton(colorScheme: colorScheme),
                               const SizedBox(height: 12),
                               // Native реклама (кнопка для показа в диалоге)
                               AdTestButton(
@@ -621,6 +534,115 @@ class ProfilePage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Виджет кнопки для показа App Open рекламы с защитой от множественных нажатий
+class _AppOpenAdButton extends StatefulWidget {
+  final ColorScheme colorScheme;
+
+  const _AppOpenAdButton({required this.colorScheme});
+
+  @override
+  State<_AppOpenAdButton> createState() => _AppOpenAdButtonState();
+}
+
+class _AppOpenAdButtonState extends State<_AppOpenAdButton> {
+  bool _isLoading = false;
+
+  Future<void> _handlePress() async {
+    // Предотвращаем множественные одновременные нажатия
+    if (_isLoading) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final logger = LoggerService();
+      logger.init();
+      logger.logInfo(
+        message: 'App Open button pressed',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Загрузка App Open рекламы...'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+
+      // Загружаем рекламу
+      await AdService.instance.loadAppOpenAd();
+
+      // Ждем загрузки (до 3 секунд)
+      await Future.delayed(const Duration(seconds: 3));
+
+      // Пытаемся показать рекламу
+      final success = await AdService.instance.showAppOpenAd();
+
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ App Open реклама показана'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '❌ Не удалось загрузить App Open рекламу.\n'
+                'Проверьте Ad Unit ID в консоли AdMob.',
+              ),
+              duration: Duration(seconds: 5),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      final logger = LoggerService();
+      logger.init();
+      logger.logError(
+        message: 'Error showing App Open ad: $e',
+        error: e,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdTestButton(
+      icon: Icons.open_in_new,
+      label: 'App Open (При открытии)',
+      description: _isLoading
+          ? 'Загрузка рекламы...'
+          : 'Показать рекламу при открытии',
+      colorScheme: widget.colorScheme,
+      onPressed: _handlePress,
     );
   }
 }
