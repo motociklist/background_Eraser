@@ -881,9 +881,97 @@ class AdService {
 
     _isAppOpenAdLoading = true;
     try {
+      // Детальное логирование перед загрузкой
       _logger.logInfo(
-        message: 'Attempting to load App Open ad',
-        data: {'ad_unit_id': _appOpenAdUnitId, 'platform': 'android'},
+        message: '=== App Open Ad Load Debug Info ===',
+        data: {
+          'ad_unit_id': _appOpenAdUnitId,
+          'ad_unit_id_length': _appOpenAdUnitId?.length ?? 0,
+          'ad_unit_id_starts_with':
+              _appOpenAdUnitId?.substring(0, 20) ?? 'null',
+          'is_initialized': _isInitialized,
+          'is_web': kIsWeb,
+        },
+      );
+
+      // Проверяем формат ad unit ID перед загрузкой
+      if (_appOpenAdUnitId == null || _appOpenAdUnitId!.isEmpty) {
+        _logger.logError(
+          message: 'App Open ad unit ID is null or empty',
+          error: null,
+          stackTrace: null,
+        );
+        _isAppOpenAdLoading = false;
+        return;
+      }
+
+      // Проверяем, что ad unit ID имеет правильный формат для App Open
+      if (!_appOpenAdUnitId!.contains('/')) {
+        _logger.logError(
+          message: 'App Open ad unit ID format is invalid (should contain "/")',
+          error: null,
+          stackTrace: null,
+        );
+        _isAppOpenAdLoading = false;
+        return;
+      }
+
+      // Проверяем формат AdMob ID (должен начинаться с ca-app-pub-)
+      if (!_appOpenAdUnitId!.startsWith('ca-app-pub-')) {
+        _logger.logError(
+          message: 'App Open ad unit ID does not start with "ca-app-pub-"',
+          error: null,
+          stackTrace: null,
+        );
+        _isAppOpenAdLoading = false;
+        return;
+      }
+
+      // Проверяем, что ID содержит правильный разделитель
+      final parts = _appOpenAdUnitId!.split('/');
+      if (parts.length != 2) {
+        _logger.logError(
+          message:
+              'App Open ad unit ID format is invalid. Expected format: ca-app-pub-XXXX/XXXX, got: $_appOpenAdUnitId',
+          error: null,
+          stackTrace: null,
+        );
+        _isAppOpenAdLoading = false;
+        return;
+      }
+
+      _logger.logInfo(
+        message: 'App Open ad unit ID format validation passed',
+        data: {
+          'app_id_part': parts[0],
+          'ad_unit_part': parts[1],
+          'full_id': _appOpenAdUnitId,
+        },
+      );
+
+      // Проверяем статус инициализации MobileAds
+      try {
+        final initStatus = await MobileAds.instance.initialize();
+        _logger.logInfo(
+          message: 'MobileAds initialization status checked',
+          data: {
+            'adapter_count': initStatus.adapterStatuses.length,
+            'adapter_names': initStatus.adapterStatuses.keys.toList(),
+          },
+        );
+      } catch (e) {
+        _logger.logWarning(
+          message: 'Failed to check MobileAds initialization status: $e',
+          context: {},
+        );
+      }
+
+      _logger.logInfo(
+        message: 'Calling AppOpenAd.load() with parameters',
+        data: {
+          'ad_unit_id': _appOpenAdUnitId,
+          'request_test_mode': true, // Тестовый режим
+        },
       );
 
       await AppOpenAd.load(
@@ -953,12 +1041,64 @@ class AdService {
           },
           onAdFailedToLoad: (error) {
             _isAppOpenAdLoading = false;
+
+            // Детальное логирование ошибки
             _logger.logError(
               message:
                   'App Open ad failed to load: ${error.message} (code: ${error.code})',
               error: error,
               stackTrace: null,
             );
+
+            // Дополнительная информация об ошибке
+            _logger.logInfo(
+              message: '=== App Open Ad Load Error Details ===',
+              data: {
+                'error_code': error.code.toString(),
+                'error_domain': error.domain,
+                'error_message': error.message,
+                'ad_unit_id_used': _appOpenAdUnitId,
+                'response_info': error.responseInfo != null
+                    ? {
+                        'response_id': error.responseInfo!.responseId,
+                        'mediation_adapter':
+                            error.responseInfo!.mediationAdapterClassName,
+                        'adapter_responses_count':
+                            error.responseInfo!.adapterResponses?.length ?? 0,
+                        'loaded_adapter_response':
+                            error.responseInfo!.loadedAdapterResponseInfo !=
+                                null
+                            ? 'present'
+                            : 'null',
+                      }
+                    : 'null',
+              },
+            );
+
+            // Специальная обработка для ошибки code 3
+            if (error.code == 3) {
+              _logger.logError(
+                message: 'ERROR CODE 3: Ad unit format mismatch',
+                error: null,
+                stackTrace: null,
+              );
+              _logger.logInfo(
+                message: 'Possible causes for error code 3:',
+                data: {
+                  'cause_1':
+                      'Ad unit ID is for a different ad format (not App Open)',
+                  'cause_2': 'Ad unit ID format is incorrect',
+                  'cause_3': 'Ad unit ID does not exist in AdMob console',
+                  'cause_4':
+                      'Ad unit ID is not properly configured for App Open format',
+                  'ad_unit_id_used': _appOpenAdUnitId,
+                  'expected_format': 'ca-app-pub-XXXX/XXXX (App Open format)',
+                  'suggestion':
+                      'Verify in AdMob console that this ID is configured as App Open ad unit',
+                },
+              );
+            }
+
             _logger.logInfo(
               message: 'App Open ad unit ID: $_appOpenAdUnitId',
               data: {

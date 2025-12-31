@@ -365,6 +365,13 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   User? _previousUser;
   bool _isInitialLoad = true;
+  bool _hasShownAdForCurrentLogin = false;
+  bool _isShowingAd = false; // Флаг для отслеживания процесса показа рекламы
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,65 +415,76 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         final currentUser = snapshot.data;
 
-        // Проверяем, произошел ли вход в аккаунт (переход из неавторизованного в авторизованное)
+        // Определяем, произошел ли новый вход в аккаунт (переход из неавторизованного в авторизованное)
         final isNewLogin =
-            !_isInitialLoad && _previousUser == null && currentUser != null;
-
-        // Также показываем при первом запуске, если пользователь уже авторизован
-        final shouldShowAd =
-            (isNewLogin || (_isInitialLoad && currentUser != null)) && !kIsWeb;
+            _previousUser == null && currentUser != null && !_isInitialLoad;
 
         // Если пользователь авторизован - показываем главный экран с навигацией
         if (currentUser != null) {
-          // Показываем App Open рекламу при новом входе или первом запуске с авторизованным пользователем
+          // Показываем App Open рекламу:
+          // 1. При первом запуске приложения (если пользователь уже авторизован)
+          // 2. При каждом новом входе в аккаунт после выхода
+          final shouldShowAd =
+              (!_hasShownAdForCurrentLogin &&
+              !_isShowingAd &&
+              (isNewLogin || _isInitialLoad) &&
+              !kIsWeb);
+
           if (shouldShowAd) {
+            // ВАЖНО: Помечаем СРАЗУ оба флага, чтобы предотвратить повторные вызовы
+            _hasShownAdForCurrentLogin = true;
+            _isShowingAd = true;
+
             final logger = LoggerService();
             logger.init();
             logger.logInfo(
               message: 'Should show App Open ad',
               data: {
                 'user_id': currentUser.uid,
-                'is_new_login': isNewLogin,
                 'is_initial_load': _isInitialLoad,
+                'is_new_login': isNewLogin,
                 'previous_user': _previousUser?.uid ?? 'null',
               },
             );
 
-            // Загружаем рекламу сразу
+            // Загружаем рекламу сразу (только один раз)
             AdService.instance.loadAppOpenAd();
 
             // Небольшая задержка, чтобы пользователь увидел главный экран
             // и реклама успела загрузиться
             Future.delayed(const Duration(milliseconds: 2000), () async {
+              // Проверяем, что виджет еще смонтирован и флаг не сброшен
+              if (!mounted || !_isShowingAd) {
+                logger.logWarning(
+                  message:
+                      'App Open ad show cancelled: widget unmounted or flag reset',
+                );
+                return;
+              }
+
               logger.logInfo(
                 message: 'Attempting to show App Open ad after delay',
               );
               try {
                 await AdService.instance.showAppOpenAd();
+                logger.logInfo(message: 'App Open ad shown successfully');
               } catch (e) {
                 logger.logError(
                   message: 'Failed to show App Open ad: $e',
                   error: e,
                 );
+              } finally {
+                // Сбрасываем флаг показа после завершения (успешного или с ошибкой)
+                if (mounted) {
+                  setState(() {
+                    _isShowingAd = false;
+                  });
+                }
               }
             });
-          } else {
-            // Логируем, почему реклама не показывается
-            final logger = LoggerService();
-            logger.init();
-            logger.logInfo(
-              message: 'App Open ad not shown',
-              data: {
-                'should_show': shouldShowAd,
-                'is_new_login': isNewLogin,
-                'is_initial_load': _isInitialLoad,
-                'previous_user': _previousUser?.uid ?? 'null',
-                'current_user': currentUser.uid,
-              },
-            );
           }
 
-          // Обновляем предыдущее состояние
+          // Обновляем предыдущего пользователя
           _previousUser = currentUser;
           _isInitialLoad = false;
 
@@ -474,8 +492,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
           return MainNavigation(key: ValueKey(currentUser.uid));
         }
 
-        // Если не авторизован - обновляем состояние и показываем экран входа/регистрации
+        // Если не авторизован - сбрасываем флаги и показываем экран входа/регистрации
         _previousUser = null;
+        _hasShownAdForCurrentLogin = false; // Сбрасываем флаг при выходе
+        _isShowingAd = false; // Сбрасываем флаг показа при выходе
         _isInitialLoad = false;
         return const AuthScreen();
       },
