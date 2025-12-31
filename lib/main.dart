@@ -20,12 +20,13 @@ import 'config/analytics_config.dart';
 import 'config/api_config.dart';
 
 void main() async {
+  // Инициализация логирования (один раз для всего приложения)
+  final logger = LoggerService();
+  logger.init();
+
   // Обработка ошибок Flutter для предотвращения белого экрана
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
-    // Логируем критическую ошибку
-    final logger = LoggerService();
-    logger.init();
     logger.logError(
       message: 'Flutter error: ${details.exception}',
       error: details.exception,
@@ -35,8 +36,6 @@ void main() async {
 
   // Обработка асинхронных ошибок
   PlatformDispatcher.instance.onError = (error, stack) {
-    final logger = LoggerService();
-    logger.init();
     logger.logError(
       message: 'Platform error: $error',
       error: error,
@@ -46,10 +45,6 @@ void main() async {
   };
 
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Инициализация логирования
-  final logger = LoggerService();
-  logger.init();
   logger.logInfo(message: 'Application started');
 
   // Инициализация Firebase
