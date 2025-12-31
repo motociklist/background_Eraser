@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, ChangeNotifier;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-// import 'package:ironsource_mediation/ironsource_mediation.dart'; // Опционально
 import 'analytics_service.dart';
 import 'logger_service.dart';
+import 'ad_helpers.dart';
 
 /// Типы рекламы
 enum AdType { banner, interstitial, rewarded, native }
@@ -21,6 +21,7 @@ class AdService {
 
   final LoggerService _logger = LoggerService();
   final AnalyticsService _analytics = AnalyticsService.instance;
+  final AdHelpers _helpers = AdHelpers();
 
   bool _isInitialized = false;
 
@@ -39,9 +40,9 @@ class AdService {
 
   // Счетчики для показа interstitial
   int _interstitialCounter = 0;
-  int _interstitialShowInterval = 2; // Показывать каждые 2 обработки
+  int _interstitialShowInterval = 2;
 
-  // Ad Unit IDs (будут настроены через init)
+  // Ad Unit IDs
   String? _bannerAdUnitId;
   String? _interstitialAdUnitId;
   String? _rewardedAdUnitId;
@@ -71,7 +72,6 @@ class AdService {
     try {
       _logger.init();
 
-      // Google Mobile Ads не поддерживает веб-платформу
       if (kIsWeb) {
         _logger.logInfo(
           message: 'AdService skipped for web platform (not supported)',
@@ -88,7 +88,6 @@ class AdService {
       _appOpenAdUnitId = appOpenAdUnitId;
       _interstitialShowInterval = interstitialShowInterval;
 
-      // Инициализация AdMob только для мобильных платформ
       _logger.logInfo(
         message: 'Initializing MobileAds SDK...',
         data: {
@@ -107,25 +106,6 @@ class AdService {
         },
       );
 
-      // Инициализация ironSource (опционально)
-      // Раскомментируйте при необходимости интеграции ironSource
-      // if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-      //   try {
-      //     await IronSource.init(
-      //       appKey: '', // Будет настроено позже
-      //       adUnits: [
-      //         ISAdUnit.REWARDED_VIDEO,
-      //         ISAdUnit.INTERSTITIAL,
-      //       ],
-      //     );
-      //   } catch (e) {
-      //     _logger.logWarning(
-      //       message: 'Failed to initialize ironSource (optional)',
-      //       context: {'error': e.toString()},
-      //     );
-      //   }
-      // }
-
       _isInitialized = true;
 
       _logger.logInfo(
@@ -141,7 +121,6 @@ class AdService {
       );
 
       // Загружаем App Open рекламу при инициализации
-      // Небольшая задержка, чтобы MobileAds успел полностью инициализироваться
       Future.delayed(const Duration(milliseconds: 500), () {
         if (appOpenAdUnitId != null) {
           _logger.logInfo(
@@ -166,9 +145,12 @@ class AdService {
     }
   }
 
+  /// Проверка доступности рекламы для платформы
+  bool _isAdAvailable() => !kIsWeb && _isInitialized;
+
   /// Загрузка и показ баннерной рекламы
   Future<BannerAd?> loadBannerAd({AdSize? adSize, AdRequest? request}) async {
-    if (kIsWeb || !_isInitialized || _bannerAdUnitId == null) {
+    if (!_isAdAvailable() || _bannerAdUnitId == null) {
       if (kIsWeb) {
         _logger.logInfo(message: 'Banner ad skipped for web platform');
       } else {
@@ -181,7 +163,6 @@ class AdService {
     }
 
     try {
-      // Удаляем предыдущий баннер, если есть
       _bannerAd?.dispose();
 
       _bannerAd = BannerAd(
@@ -190,30 +171,10 @@ class AdService {
         request: request ?? const AdRequest(),
         listener: BannerAdListener(
           onAdLoaded: (ad) {
-            _logger.logInfo(
-              message: 'Banner ad loaded',
-              data: {'ad_unit_id': _bannerAdUnitId},
-            );
-            _analytics.logEvent(
-              'ad_loaded',
-              parameters: {'ad_type': 'banner', 'ad_unit_id': _bannerAdUnitId},
-            );
+            _helpers.logAdLoaded('banner', _bannerAdUnitId);
           },
           onAdFailedToLoad: (ad, error) {
-            _logger.logError(
-              message: 'Banner ad failed to load',
-              error: error,
-              stackTrace: null,
-            );
-            _analytics.logEvent(
-              'ad_failed',
-              parameters: {
-                'ad_type': 'banner',
-                'ad_unit_id': _bannerAdUnitId,
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-              },
-            );
+            _helpers.logAdLoadFailed('banner', _bannerAdUnitId, error);
             ad.dispose();
           },
           onAdOpened: (ad) {
@@ -245,7 +206,7 @@ class AdService {
 
   /// Загрузка interstitial рекламы
   Future<void> loadInterstitialAd() async {
-    if (kIsWeb || !_isInitialized || _interstitialAdUnitId == null) {
+    if (!_isAdAvailable() || _interstitialAdUnitId == null) {
       return;
     }
 
@@ -256,78 +217,23 @@ class AdService {
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (ad) {
             _interstitialAd = ad;
-            _logger.logInfo(
-              message: 'Interstitial ad loaded',
-              data: {'ad_unit_id': _interstitialAdUnitId},
-            );
-            _analytics.logEvent(
-              'ad_loaded',
-              parameters: {
-                'ad_type': 'interstitial',
-                'ad_unit_id': _interstitialAdUnitId,
-              },
-            );
+            _helpers.logAdLoaded('interstitial', _interstitialAdUnitId);
 
-            ad.fullScreenContentCallback = FullScreenContentCallback(
-              onAdShowedFullScreenContent: (ad) {
-                _analytics.logEvent(
-                  'ad_shown',
-                  parameters: {
-                    'ad_type': 'interstitial',
-                    'ad_unit_id': _interstitialAdUnitId,
+            ad.fullScreenContentCallback = _helpers
+                .createFullScreenCallback<InterstitialAd>(
+                  adType: 'interstitial',
+                  adUnitId: _interstitialAdUnitId,
+                  onDismissed: () {
+                    _interstitialAd = null;
+                    loadInterstitialAd(); // Загружаем следующий
                   },
                 );
-              },
-              onAdDismissedFullScreenContent: (ad) {
-                ad.dispose();
-                _interstitialAd = null;
-                // Загружаем следующий interstitial
-                loadInterstitialAd();
-              },
-              onAdFailedToShowFullScreenContent: (ad, error) {
-                _logger.logError(
-                  message: 'Interstitial ad failed to show',
-                  error: error,
-                  stackTrace: null,
-                );
-                _analytics.logEvent(
-                  'ad_failed',
-                  parameters: {
-                    'ad_type': 'interstitial',
-                    'ad_unit_id': _interstitialAdUnitId,
-                    'error_code': error.code.toString(),
-                    'error_message': error.message,
-                  },
-                );
-                ad.dispose();
-                _interstitialAd = null;
-                loadInterstitialAd();
-              },
-              onAdClicked: (ad) {
-                _analytics.logEvent(
-                  'ad_clicked',
-                  parameters: {
-                    'ad_type': 'interstitial',
-                    'ad_unit_id': _interstitialAdUnitId,
-                  },
-                );
-              },
-            );
           },
           onAdFailedToLoad: (error) {
-            _logger.logError(
-              message: 'Interstitial ad failed to load',
-              error: error,
-              stackTrace: null,
-            );
-            _analytics.logEvent(
-              'ad_failed',
-              parameters: {
-                'ad_type': 'interstitial',
-                'ad_unit_id': _interstitialAdUnitId,
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-              },
+            _helpers.logAdLoadFailed(
+              'interstitial',
+              _interstitialAdUnitId,
+              error,
             );
             _interstitialAd = null;
           },
@@ -379,18 +285,16 @@ class AdService {
 
   /// Загрузка rewarded рекламы
   Future<void> loadRewardedAd({Function()? onRewarded}) async {
-    if (kIsWeb || !_isInitialized || _rewardedAdUnitId == null) {
+    if (!_isAdAvailable() || _rewardedAdUnitId == null) {
       return;
     }
 
     _onRewardedAdCompleted = onRewarded;
 
-    // Если реклама уже загружается, ждем завершения
     if (_rewardedAdLoadCompleter != null) {
       return _rewardedAdLoadCompleter!.future;
     }
 
-    // Если реклама уже загружена, не загружаем снова
     if (_rewardedAd != null) {
       return;
     }
@@ -404,87 +308,24 @@ class AdService {
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
             _rewardedAd = ad;
-            _logger.logInfo(
-              message: 'Rewarded ad loaded',
-              data: {'ad_unit_id': _rewardedAdUnitId},
-            );
-            _analytics.logEvent(
-              'ad_loaded',
-              parameters: {
-                'ad_type': 'rewarded',
-                'ad_unit_id': _rewardedAdUnitId,
-              },
-            );
+            _helpers.logAdLoaded('rewarded', _rewardedAdUnitId);
 
-            ad.fullScreenContentCallback = FullScreenContentCallback(
-              onAdShowedFullScreenContent: (ad) {
-                _analytics.logEvent(
-                  'ad_shown',
-                  parameters: {
-                    'ad_type': 'rewarded',
-                    'ad_unit_id': _rewardedAdUnitId,
+            ad.fullScreenContentCallback = _helpers
+                .createFullScreenCallback<RewardedAd>(
+                  adType: 'rewarded',
+                  adUnitId: _rewardedAdUnitId,
+                  onDismissed: () {
+                    _rewardedAd = null;
                   },
                 );
-              },
-              onAdDismissedFullScreenContent: (ad) {
-                ad.dispose();
-                _rewardedAd = null;
-              },
-              onAdFailedToShowFullScreenContent: (ad, error) {
-                _logger.logError(
-                  message: 'Rewarded ad failed to show',
-                  error: error,
-                  stackTrace: null,
-                );
-                _analytics.logEvent(
-                  'ad_failed',
-                  parameters: {
-                    'ad_type': 'rewarded',
-                    'ad_unit_id': _rewardedAdUnitId,
-                    'error_code': error.code.toString(),
-                    'error_message': error.message,
-                  },
-                );
-                ad.dispose();
-                _rewardedAd = null;
-              },
-              onAdClicked: (ad) {
-                _analytics.logEvent(
-                  'ad_clicked',
-                  parameters: {
-                    'ad_type': 'rewarded',
-                    'ad_unit_id': _rewardedAdUnitId,
-                  },
-                );
-              },
-            );
-            // Завершаем Completer при успешной загрузке
-            if (!_rewardedAdLoadCompleter!.isCompleted) {
-              _rewardedAdLoadCompleter!.complete();
-            }
+
+            _completeCompleter(_rewardedAdLoadCompleter);
             _rewardedAdLoadCompleter = null;
           },
           onAdFailedToLoad: (error) {
-            _logger.logError(
-              message: 'Rewarded ad failed to load',
-              error: error,
-              stackTrace: null,
-            );
-            _analytics.logEvent(
-              'ad_failed',
-              parameters: {
-                'ad_type': 'rewarded',
-                'ad_unit_id': _rewardedAdUnitId,
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-              },
-            );
+            _helpers.logAdLoadFailed('rewarded', _rewardedAdUnitId, error);
             _rewardedAd = null;
-            // Завершаем Completer даже при ошибке
-            if (_rewardedAdLoadCompleter != null &&
-                !_rewardedAdLoadCompleter!.isCompleted) {
-              _rewardedAdLoadCompleter!.complete();
-            }
+            _completeCompleter(_rewardedAdLoadCompleter);
             _rewardedAdLoadCompleter = null;
           },
         ),
@@ -495,11 +336,7 @@ class AdService {
         error: e,
         stackTrace: stackTrace,
       );
-      // Завершаем Completer при исключении
-      if (_rewardedAdLoadCompleter != null &&
-          !_rewardedAdLoadCompleter!.isCompleted) {
-        _rewardedAdLoadCompleter!.complete();
-      }
+      _completeCompleter(_rewardedAdLoadCompleter);
       _rewardedAdLoadCompleter = null;
     }
   }
@@ -510,25 +347,17 @@ class AdService {
       return;
     }
 
-    // Сохраняем callback, если передан
     if (onRewarded != null) {
       _onRewardedAdCompleted = onRewarded;
     }
 
-    // Если реклама не загружена, загружаем и ждем
     if (_rewardedAd == null) {
       await loadRewardedAd(onRewarded: _onRewardedAdCompleted);
-
-      // Ждем загрузки с таймаутом (до 10 секунд)
-      int attempts = 0;
-      while (_rewardedAd == null && attempts < 20) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        attempts++;
-      }
-
-      // Если реклама все еще не загружена, выходим
+      await _waitForAd(
+        () => _rewardedAd != null,
+        'Rewarded ad not loaded after waiting',
+      );
       if (_rewardedAd == null) {
-        _logger.logWarning(message: 'Rewarded ad not loaded after waiting');
         return;
       }
     }
@@ -536,19 +365,8 @@ class AdService {
     try {
       await _rewardedAd!.show(
         onUserEarnedReward: (ad, reward) {
-          _analytics.logEvent(
-            'ad_rewarded',
-            parameters: {
-              'ad_type': 'rewarded',
-              'ad_unit_id': _rewardedAdUnitId,
-              'reward_type': reward.type,
-              'reward_amount': reward.amount.toString(),
-            },
-          );
-
-          if (_onRewardedAdCompleted != null) {
-            _onRewardedAdCompleted!();
-          }
+          _helpers.logAdRewarded('rewarded', _rewardedAdUnitId, reward);
+          _onRewardedAdCompleted?.call();
         },
       );
     } catch (e) {
@@ -562,18 +380,16 @@ class AdService {
 
   /// Загрузка Rewarded Interstitial рекламы
   Future<void> loadRewardedInterstitialAd({Function()? onRewarded}) async {
-    if (kIsWeb || !_isInitialized || _rewardedInterstitialAdUnitId == null) {
+    if (!_isAdAvailable() || _rewardedInterstitialAdUnitId == null) {
       return;
     }
 
     _onRewardedInterstitialAdCompleted = onRewarded;
 
-    // Если реклама уже загружается, ждем завершения
     if (_rewardedInterstitialAdLoadCompleter != null) {
       return _rewardedInterstitialAdLoadCompleter!.future;
     }
 
-    // Если реклама уже загружена, не загружаем снова
     if (_rewardedInterstitialAd != null) {
       return;
     }
@@ -587,87 +403,31 @@ class AdService {
         rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
           onAdLoaded: (ad) {
             _rewardedInterstitialAd = ad;
-            _logger.logInfo(
-              message: 'Rewarded Interstitial ad loaded',
-              data: {'ad_unit_id': _rewardedInterstitialAdUnitId},
-            );
-            _analytics.logEvent(
-              'ad_loaded',
-              parameters: {
-                'ad_type': 'rewarded_interstitial',
-                'ad_unit_id': _rewardedInterstitialAdUnitId,
-              },
+            _helpers.logAdLoaded(
+              'rewarded_interstitial',
+              _rewardedInterstitialAdUnitId,
             );
 
-            ad.fullScreenContentCallback = FullScreenContentCallback(
-              onAdShowedFullScreenContent: (ad) {
-                _analytics.logEvent(
-                  'ad_shown',
-                  parameters: {
-                    'ad_type': 'rewarded_interstitial',
-                    'ad_unit_id': _rewardedInterstitialAdUnitId,
+            ad.fullScreenContentCallback = _helpers
+                .createFullScreenCallback<RewardedInterstitialAd>(
+                  adType: 'rewarded_interstitial',
+                  adUnitId: _rewardedInterstitialAdUnitId,
+                  onDismissed: () {
+                    _rewardedInterstitialAd = null;
                   },
                 );
-              },
-              onAdDismissedFullScreenContent: (ad) {
-                ad.dispose();
-                _rewardedInterstitialAd = null;
-              },
-              onAdFailedToShowFullScreenContent: (ad, error) {
-                _logger.logError(
-                  message: 'Rewarded Interstitial ad failed to show',
-                  error: error,
-                  stackTrace: null,
-                );
-                _analytics.logEvent(
-                  'ad_failed',
-                  parameters: {
-                    'ad_type': 'rewarded_interstitial',
-                    'ad_unit_id': _rewardedInterstitialAdUnitId,
-                    'error_code': error.code.toString(),
-                    'error_message': error.message,
-                  },
-                );
-                ad.dispose();
-                _rewardedInterstitialAd = null;
-              },
-              onAdClicked: (ad) {
-                _analytics.logEvent(
-                  'ad_clicked',
-                  parameters: {
-                    'ad_type': 'rewarded_interstitial',
-                    'ad_unit_id': _rewardedInterstitialAdUnitId,
-                  },
-                );
-              },
-            );
-            // Завершаем Completer при успешной загрузке
-            if (!_rewardedInterstitialAdLoadCompleter!.isCompleted) {
-              _rewardedInterstitialAdLoadCompleter!.complete();
-            }
+
+            _completeCompleter(_rewardedInterstitialAdLoadCompleter);
             _rewardedInterstitialAdLoadCompleter = null;
           },
           onAdFailedToLoad: (error) {
-            _logger.logError(
-              message: 'Rewarded Interstitial ad failed to load',
-              error: error,
-              stackTrace: null,
-            );
-            _analytics.logEvent(
-              'ad_failed',
-              parameters: {
-                'ad_type': 'rewarded_interstitial',
-                'ad_unit_id': _rewardedInterstitialAdUnitId,
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-              },
+            _helpers.logAdLoadFailed(
+              'rewarded_interstitial',
+              _rewardedInterstitialAdUnitId,
+              error,
             );
             _rewardedInterstitialAd = null;
-            // Завершаем Completer даже при ошибке
-            if (_rewardedInterstitialAdLoadCompleter != null &&
-                !_rewardedInterstitialAdLoadCompleter!.isCompleted) {
-              _rewardedInterstitialAdLoadCompleter!.complete();
-            }
+            _completeCompleter(_rewardedInterstitialAdLoadCompleter);
             _rewardedInterstitialAdLoadCompleter = null;
           },
         ),
@@ -678,11 +438,7 @@ class AdService {
         error: e,
         stackTrace: stackTrace,
       );
-      // Завершаем Completer при исключении
-      if (_rewardedInterstitialAdLoadCompleter != null &&
-          !_rewardedInterstitialAdLoadCompleter!.isCompleted) {
-        _rewardedInterstitialAdLoadCompleter!.complete();
-      }
+      _completeCompleter(_rewardedInterstitialAdLoadCompleter);
       _rewardedInterstitialAdLoadCompleter = null;
     }
   }
@@ -693,29 +449,19 @@ class AdService {
       return;
     }
 
-    // Сохраняем callback, если передан
     if (onRewarded != null) {
       _onRewardedInterstitialAdCompleted = onRewarded;
     }
 
-    // Если реклама не загружена, загружаем и ждем
     if (_rewardedInterstitialAd == null) {
       await loadRewardedInterstitialAd(
         onRewarded: _onRewardedInterstitialAdCompleted,
       );
-
-      // Ждем загрузки с таймаутом (до 10 секунд)
-      int attempts = 0;
-      while (_rewardedInterstitialAd == null && attempts < 20) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        attempts++;
-      }
-
-      // Если реклама все еще не загружена, выходим
+      await _waitForAd(
+        () => _rewardedInterstitialAd != null,
+        'Rewarded Interstitial ad not loaded after waiting',
+      );
       if (_rewardedInterstitialAd == null) {
-        _logger.logWarning(
-          message: 'Rewarded Interstitial ad not loaded after waiting',
-        );
         return;
       }
     }
@@ -723,19 +469,12 @@ class AdService {
     try {
       await _rewardedInterstitialAd!.show(
         onUserEarnedReward: (ad, reward) {
-          _analytics.logEvent(
-            'ad_rewarded',
-            parameters: {
-              'ad_type': 'rewarded_interstitial',
-              'ad_unit_id': _rewardedInterstitialAdUnitId,
-              'reward_type': reward.type,
-              'reward_amount': reward.amount.toString(),
-            },
+          _helpers.logAdRewarded(
+            'rewarded_interstitial',
+            _rewardedInterstitialAdUnitId,
+            reward,
           );
-
-          if (_onRewardedInterstitialAdCompleted != null) {
-            _onRewardedInterstitialAdCompleted!();
-          }
+          _onRewardedInterstitialAdCompleted?.call();
         },
       );
     } catch (e) {
@@ -752,12 +491,11 @@ class AdService {
     required NativeAdController controller,
     AdRequest? request,
   }) async {
-    if (kIsWeb || !_isInitialized || _nativeAdUnitId == null) {
+    if (!_isAdAvailable() || _nativeAdUnitId == null) {
       return null;
     }
 
     try {
-      // Удаляем предыдущую нативную рекламу, если есть
       _nativeAd?.dispose();
 
       _nativeAd = NativeAd(
@@ -792,31 +530,11 @@ class AdService {
         listener: NativeAdListener(
           onAdLoaded: (ad) {
             _nativeAd = ad as NativeAd;
-            _logger.logInfo(
-              message: 'Native ad loaded',
-              data: {'ad_unit_id': _nativeAdUnitId},
-            );
-            _analytics.logEvent(
-              'ad_loaded',
-              parameters: {'ad_type': 'native', 'ad_unit_id': _nativeAdUnitId},
-            );
+            _helpers.logAdLoaded('native', _nativeAdUnitId);
             controller.setNativeAd(_nativeAd);
           },
           onAdFailedToLoad: (ad, error) {
-            _logger.logError(
-              message: 'Native ad failed to load',
-              error: error,
-              stackTrace: null,
-            );
-            _analytics.logEvent(
-              'ad_failed',
-              parameters: {
-                'ad_type': 'native',
-                'ad_unit_id': _nativeAdUnitId,
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-              },
-            );
+            _helpers.logAdLoadFailed('native', _nativeAdUnitId, error);
             ad.dispose();
             _nativeAd = null;
             controller.setNativeAd(null);
@@ -853,11 +571,10 @@ class AdService {
 
   /// Загрузка App Open рекламы
   Future<void> loadAppOpenAd() async {
-    if (kIsWeb || !_isInitialized || _appOpenAdUnitId == null) {
+    if (!_isAdAvailable() || _appOpenAdUnitId == null) {
       return;
     }
 
-    // Если уже загружается или уже загружена, не загружаем повторно
     if (_isAppOpenAdLoading || _appOpenAd != null) {
       return;
     }
@@ -871,59 +588,17 @@ class AdService {
           onAdLoaded: (ad) {
             _appOpenAd = ad;
             _isAppOpenAdLoading = false;
-            _analytics.logEvent(
-              'ad_loaded',
-              parameters: {
-                'ad_type': 'app_open',
-                'ad_unit_id': _appOpenAdUnitId,
-              },
-            );
+            _helpers.logAdLoaded('app_open', _appOpenAdUnitId);
 
-            ad.fullScreenContentCallback = FullScreenContentCallback(
-              onAdShowedFullScreenContent: (ad) {
-                _analytics.logEvent(
-                  'ad_shown',
-                  parameters: {
-                    'ad_type': 'app_open',
-                    'ad_unit_id': _appOpenAdUnitId,
+            ad.fullScreenContentCallback = _helpers
+                .createFullScreenCallback<AppOpenAd>(
+                  adType: 'app_open',
+                  adUnitId: _appOpenAdUnitId,
+                  onDismissed: () {
+                    _appOpenAd = null;
+                    loadAppOpenAd(); // Загружаем следующую
                   },
                 );
-              },
-              onAdDismissedFullScreenContent: (ad) {
-                ad.dispose();
-                _appOpenAd = null;
-                // Загружаем следующую App Open рекламу
-                loadAppOpenAd();
-              },
-              onAdFailedToShowFullScreenContent: (ad, error) {
-                _logger.logError(
-                  message: 'App Open ad failed to show',
-                  error: error,
-                  stackTrace: null,
-                );
-                _analytics.logEvent(
-                  'ad_failed',
-                  parameters: {
-                    'ad_type': 'app_open',
-                    'ad_unit_id': _appOpenAdUnitId,
-                    'error_code': error.code.toString(),
-                    'error_message': error.message,
-                  },
-                );
-                ad.dispose();
-                _appOpenAd = null;
-                loadAppOpenAd();
-              },
-              onAdClicked: (ad) {
-                _analytics.logEvent(
-                  'ad_clicked',
-                  parameters: {
-                    'ad_type': 'app_open',
-                    'ad_unit_id': _appOpenAdUnitId,
-                  },
-                );
-              },
-            );
           },
           onAdFailedToLoad: (error) {
             _isAppOpenAdLoading = false;
@@ -933,20 +608,13 @@ class AdService {
               error: error,
               stackTrace: null,
             );
-            _analytics.logEvent(
-              'ad_failed',
-              parameters: {
-                'ad_type': 'app_open',
-                'ad_unit_id': _appOpenAdUnitId,
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-              },
-            );
+            _helpers.logAdLoadFailed('app_open', _appOpenAdUnitId, error);
             _appOpenAd = null;
           },
         ),
       );
     } catch (e, stackTrace) {
+      _isAppOpenAdLoading = false;
       _logger.logError(
         message: 'Error loading app open ad',
         error: e,
@@ -956,23 +624,18 @@ class AdService {
   }
 
   /// Показ App Open рекламы
-  /// Возвращает true, если реклама была успешно показана, false в противном случае
   Future<bool> showAppOpenAd() async {
     if (kIsWeb || !_isInitialized) {
       return false;
     }
 
-    // Если реклама не загружена, пытаемся загрузить и подождать
     if (_appOpenAd == null) {
       await loadAppOpenAd();
-
-      // Ждем загрузки (максимум 5 секунд)
       int attempts = 0;
       while (_appOpenAd == null && _isAppOpenAdLoading && attempts < 50) {
         await Future.delayed(const Duration(milliseconds: 100));
         attempts++;
       }
-
       if (_appOpenAd == null) {
         return false;
       }
@@ -988,6 +651,25 @@ class AdService {
         stackTrace: stackTrace,
       );
       return false;
+    }
+  }
+
+  /// Вспомогательный метод для ожидания загрузки рекламы
+  Future<void> _waitForAd(bool Function() check, String timeoutMessage) async {
+    int attempts = 0;
+    while (!check() && attempts < 20) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      attempts++;
+    }
+    if (!check()) {
+      _logger.logWarning(message: timeoutMessage);
+    }
+  }
+
+  /// Вспомогательный метод для завершения Completer
+  void _completeCompleter(Completer<void>? completer) {
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
     }
   }
 
