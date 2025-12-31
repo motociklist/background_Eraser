@@ -587,27 +587,27 @@ class _AppOpenAdButtonState extends State<_AppOpenAdButton> {
       // Пытаемся показать рекламу
       final success = await AdService.instance.showAppOpenAd();
 
-      if (context.mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ App Open реклама показана'),
-              duration: Duration(seconds: 2),
-              backgroundColor: Colors.green,
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ App Open реклама показана'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '❌ Не удалось загрузить App Open рекламу.\n'
+              'Проверьте Ad Unit ID в консоли AdMob.',
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                '❌ Не удалось загрузить App Open рекламу.\n'
-                'Проверьте Ad Unit ID в консоли AdMob.',
-              ),
-              duration: Duration(seconds: 5),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+            duration: Duration(seconds: 5),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
       final logger = LoggerService();
@@ -616,14 +616,13 @@ class _AppOpenAdButtonState extends State<_AppOpenAdButton> {
         message: 'Error showing App Open ad: $e',
         error: e,
       );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {

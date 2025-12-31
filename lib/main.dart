@@ -435,18 +435,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
             _hasShownAdForCurrentLogin = true;
             _isShowingAd = true;
 
-            final logger = LoggerService();
-            logger.init();
-            logger.logInfo(
-              message: 'Should show App Open ad',
-              data: {
-                'user_id': currentUser.uid,
-                'is_initial_load': _isInitialLoad,
-                'is_new_login': isNewLogin,
-                'previous_user': _previousUser?.uid ?? 'null',
-              },
-            );
-
             // Загружаем рекламу сразу (только один раз)
             AdService.instance.loadAppOpenAd();
 
@@ -455,20 +443,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
             Future.delayed(const Duration(milliseconds: 2000), () async {
               // Проверяем, что виджет еще смонтирован и флаг не сброшен
               if (!mounted || !_isShowingAd) {
-                logger.logWarning(
-                  message:
-                      'App Open ad show cancelled: widget unmounted or flag reset',
-                );
                 return;
               }
 
-              logger.logInfo(
-                message: 'Attempting to show App Open ad after delay',
-              );
               try {
                 await AdService.instance.showAppOpenAd();
-                logger.logInfo(message: 'App Open ad shown successfully');
               } catch (e) {
+                final logger = LoggerService();
+                logger.init();
                 logger.logError(
                   message: 'Failed to show App Open ad: $e',
                   error: e,
