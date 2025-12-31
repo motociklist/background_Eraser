@@ -853,127 +853,17 @@ class AdService {
 
   /// Загрузка App Open рекламы
   Future<void> loadAppOpenAd() async {
-    _logger.init();
-    _logger.logInfo(
-      message: 'loadAppOpenAd called',
-      data: {
-        'web': kIsWeb,
-        'initialized': _isInitialized,
-        'ad_unit_id': _appOpenAdUnitId,
-        'already_loading': _isAppOpenAdLoading,
-        'already_loaded': _appOpenAd != null,
-      },
-    );
-
     if (kIsWeb || !_isInitialized || _appOpenAdUnitId == null) {
-      _logger.logWarning(
-        message:
-            'Cannot load App Open ad: web=$kIsWeb, initialized=$_isInitialized, id=$_appOpenAdUnitId',
-      );
       return;
     }
 
     // Если уже загружается или уже загружена, не загружаем повторно
     if (_isAppOpenAdLoading || _appOpenAd != null) {
-      _logger.logInfo(message: 'App Open ad already loading or loaded');
       return;
     }
 
     _isAppOpenAdLoading = true;
     try {
-      // Детальное логирование перед загрузкой
-      _logger.logInfo(
-        message: '=== App Open Ad Load Debug Info ===',
-        data: {
-          'ad_unit_id': _appOpenAdUnitId,
-          'ad_unit_id_length': _appOpenAdUnitId?.length ?? 0,
-          'ad_unit_id_starts_with':
-              _appOpenAdUnitId?.substring(0, 20) ?? 'null',
-          'is_initialized': _isInitialized,
-          'is_web': kIsWeb,
-        },
-      );
-
-      // Проверяем формат ad unit ID перед загрузкой
-      if (_appOpenAdUnitId == null || _appOpenAdUnitId!.isEmpty) {
-        _logger.logError(
-          message: 'App Open ad unit ID is null or empty',
-          error: null,
-          stackTrace: null,
-        );
-        _isAppOpenAdLoading = false;
-        return;
-      }
-
-      // Проверяем, что ad unit ID имеет правильный формат для App Open
-      if (!_appOpenAdUnitId!.contains('/')) {
-        _logger.logError(
-          message: 'App Open ad unit ID format is invalid (should contain "/")',
-          error: null,
-          stackTrace: null,
-        );
-        _isAppOpenAdLoading = false;
-        return;
-      }
-
-      // Проверяем формат AdMob ID (должен начинаться с ca-app-pub-)
-      if (!_appOpenAdUnitId!.startsWith('ca-app-pub-')) {
-        _logger.logError(
-          message: 'App Open ad unit ID does not start with "ca-app-pub-"',
-          error: null,
-          stackTrace: null,
-        );
-        _isAppOpenAdLoading = false;
-        return;
-      }
-
-      // Проверяем, что ID содержит правильный разделитель
-      final parts = _appOpenAdUnitId!.split('/');
-      if (parts.length != 2) {
-        _logger.logError(
-          message:
-              'App Open ad unit ID format is invalid. Expected format: ca-app-pub-XXXX/XXXX, got: $_appOpenAdUnitId',
-          error: null,
-          stackTrace: null,
-        );
-        _isAppOpenAdLoading = false;
-        return;
-      }
-
-      _logger.logInfo(
-        message: 'App Open ad unit ID format validation passed',
-        data: {
-          'app_id_part': parts[0],
-          'ad_unit_part': parts[1],
-          'full_id': _appOpenAdUnitId,
-        },
-      );
-
-      // Проверяем статус инициализации MobileAds
-      try {
-        final initStatus = await MobileAds.instance.initialize();
-        _logger.logInfo(
-          message: 'MobileAds initialization status checked',
-          data: {
-            'adapter_count': initStatus.adapterStatuses.length,
-            'adapter_names': initStatus.adapterStatuses.keys.toList(),
-          },
-        );
-      } catch (e) {
-        _logger.logWarning(
-          message: 'Failed to check MobileAds initialization status: $e',
-          context: {},
-        );
-      }
-
-      _logger.logInfo(
-        message: 'Calling AppOpenAd.load() with parameters',
-        data: {
-          'ad_unit_id': _appOpenAdUnitId,
-          'request_test_mode': true, // Тестовый режим
-        },
-      );
-
       await AppOpenAd.load(
         adUnitId: _appOpenAdUnitId!,
         request: const AdRequest(),
@@ -981,10 +871,6 @@ class AdService {
           onAdLoaded: (ad) {
             _appOpenAd = ad;
             _isAppOpenAdLoading = false;
-            _logger.logInfo(
-              message: 'App Open ad loaded successfully',
-              data: {'ad_unit_id': _appOpenAdUnitId},
-            );
             _analytics.logEvent(
               'ad_loaded',
               parameters: {
@@ -1041,75 +927,11 @@ class AdService {
           },
           onAdFailedToLoad: (error) {
             _isAppOpenAdLoading = false;
-
-            // Детальное логирование ошибки
             _logger.logError(
               message:
                   'App Open ad failed to load: ${error.message} (code: ${error.code})',
               error: error,
               stackTrace: null,
-            );
-
-            // Дополнительная информация об ошибке
-            _logger.logInfo(
-              message: '=== App Open Ad Load Error Details ===',
-              data: {
-                'error_code': error.code.toString(),
-                'error_domain': error.domain,
-                'error_message': error.message,
-                'ad_unit_id_used': _appOpenAdUnitId,
-                'response_info': error.responseInfo != null
-                    ? {
-                        'response_id': error.responseInfo!.responseId,
-                        'mediation_adapter':
-                            error.responseInfo!.mediationAdapterClassName,
-                        'adapter_responses_count':
-                            error.responseInfo!.adapterResponses?.length ?? 0,
-                        'loaded_adapter_response':
-                            error.responseInfo!.loadedAdapterResponseInfo !=
-                                null
-                            ? 'present'
-                            : 'null',
-                      }
-                    : 'null',
-              },
-            );
-
-            // Специальная обработка для ошибки code 3
-            if (error.code == 3) {
-              _logger.logError(
-                message: 'ERROR CODE 3: Ad unit format mismatch',
-                error: null,
-                stackTrace: null,
-              );
-              _logger.logInfo(
-                message: 'Possible causes for error code 3:',
-                data: {
-                  'cause_1':
-                      'Ad unit ID is for a different ad format (not App Open)',
-                  'cause_2': 'Ad unit ID format is incorrect',
-                  'cause_3': 'Ad unit ID does not exist in AdMob console',
-                  'cause_4':
-                      'Ad unit ID is not properly configured for App Open format',
-                  'ad_unit_id_used': _appOpenAdUnitId,
-                  'expected_format': 'ca-app-pub-XXXX/XXXX (App Open format)',
-                  'suggestion':
-                      'Verify in AdMob console that this ID is configured as App Open ad unit',
-                },
-              );
-            }
-
-            _logger.logInfo(
-              message: 'App Open ad unit ID: $_appOpenAdUnitId',
-              data: {
-                'error_code': error.code.toString(),
-                'error_message': error.message,
-                'note': error.code == 3
-                    ? 'Ошибка code 3 означает, что Ad Unit ID не соответствует формату App Open. '
-                          'Создайте реальный App Open ad unit в AdMob консоли (https://apps.admob.com/) '
-                          'и замените тестовый ID на реальный.'
-                    : 'Проверьте настройки AdMob и Ad Unit ID',
-              },
             );
             _analytics.logEvent(
               'ad_failed',
@@ -1136,21 +958,12 @@ class AdService {
   /// Показ App Open рекламы
   /// Возвращает true, если реклама была успешно показана, false в противном случае
   Future<bool> showAppOpenAd() async {
-    if (kIsWeb) {
-      _logger.logInfo(message: 'App Open ad skipped for web platform');
-      return false;
-    }
-
-    if (!_isInitialized) {
-      _logger.logWarning(
-        message: 'Cannot show App Open ad: AdService not initialized',
-      );
+    if (kIsWeb || !_isInitialized) {
       return false;
     }
 
     // Если реклама не загружена, пытаемся загрузить и подождать
     if (_appOpenAd == null) {
-      _logger.logInfo(message: 'App Open ad not loaded, loading now...');
       await loadAppOpenAd();
 
       // Ждем загрузки (максимум 5 секунд)
@@ -1161,21 +974,11 @@ class AdService {
       }
 
       if (_appOpenAd == null) {
-        _logger.logWarning(message: 'App Open ad failed to load in time');
-        _logger.logInfo(
-          message: 'App Open ad loading details',
-          data: {
-            'ad_unit_id': _appOpenAdUnitId,
-            'was_loading': _isAppOpenAdLoading,
-            'attempts': attempts,
-          },
-        );
         return false;
       }
     }
 
     try {
-      _logger.logInfo(message: 'Showing App Open ad');
       await _appOpenAd!.show();
       return true;
     } catch (e, stackTrace) {
